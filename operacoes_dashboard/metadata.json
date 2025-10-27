@@ -1,0 +1,5 @@
+{
+  "name": "CMTU-LD Operations Dashboard",
+  "description": "A real-time, map-centric operational dashboard for Londrina's Urban Transport and Traffic Company (CMTU-LD) to monitor and manage public area maintenance services like mowing and gardening.",
+  "requestFramePermissions": []
+}

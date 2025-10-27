@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMTU-LD - Dashboard Operacional</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+          crossorigin=""/>
+    
+    <!-- Leaflet Draw CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    
+    <style>
+        /* Custom styles for map container and layout */
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+        
+        .sidebar {
+            height: 100vh;
+            width: 280px;
+            overflow-y: auto;
+            background: linear-gradient(135deg, rgba(30, 28, 62, 0.95) 0%, rgba(42, 38, 84, 0.95) 50%, rgba(30, 28, 62, 0.95) 100%);
+            backdrop-filter: blur(15px);
+            border-right: 2px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 4px 0 25px rgba(30, 28, 62, 0.6);
+            flex-shrink: 0;
+        }
+        
+        /* Modern sidebar header */
+        .sidebar-header {
+            background: linear-gradient(135deg, rgba(30, 28, 62, 0.9) 0%, rgba(52, 47, 95, 0.9) 100%);
+            backdrop-filter: blur(25px);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.4);
+        }
+        
+        .sidebar-title {
+            color: #ffffff;
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .sidebar-subtitle {
+            color: #b8b5d1;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            opacity: 0.9;
+        }
+        
+        /* Toggle button styling */
+        .toggle-btn {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .toggle-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(30, 28, 62, 0.3);
+        }
+        
+        /* Section headers */
+        .section-header {
+            color: white;
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            padding: 0 1rem;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Service menu items */
+        .service-menu {
+            margin-bottom: 1rem;
+        }
+        
+        .service-item {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 0.75rem;
+            margin: 0.5rem 1rem;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .service-item:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .service-header {
+            padding: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .service-header:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .service-icon {
+            width: 1.5rem;
+            height: 1.5rem;
+            margin-right: 0.75rem;
+            opacity: 0.9;
+        }
+        
+        .service-title {
+            flex: 1;
+            font-size: 0.95rem;
+        }
+        
+        .expand-icon {
+            width: 1.25rem;
+            height: 1.25rem;
+            transition: transform 0.3s ease;
+            opacity: 0.7;
+        }
+        
+        .expand-icon.expanded {
+            transform: rotate(180deg);
+        }
+        
+        /* Submenu styles */
+        .submenu {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease, padding 0.3s ease;
+            background: rgba(0, 0, 0, 0.1);
+        }
+        
+        .submenu.expanded {
+            max-height: 300px;
+            padding: 0.5rem 0;
+        }
+        
+        .submenu-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem 0.75rem 3rem;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+        
+        .submenu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-left-color: rgba(255, 255, 255, 0.5);
+            padding-left: 3.25rem;
+        }
+        
+        .submenu-item.active {
+            background: rgba(255, 255, 255, 0.15);
+            border-left-color: #10b981;
+            color: white;
+        }
+        
+        .submenu-checkbox {
+            margin-right: 0.75rem;
+            width: 1rem;
+            height: 1rem;
+            accent-color: #6366f1;
+        }
+        
+        /* Form sections */
+        .form-section {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 0.75rem;
+            margin: 0.5rem 1rem 1rem;
+            padding: 1rem;
+            backdrop-filter: blur(10px);
+        }
+        
+        .form-section h3 {
+            color: #ffffff;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        
+        .form-group {
+            margin-bottom: 0.75rem;
+        }
+        
+        .form-label {
+            display: block;
+            color: #e2e0f0;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+        
+        .form-input, .form-select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 0.5rem;
+            background: rgba(255, 255, 255, 0.08);
+            color: white;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .form-input::placeholder {
+            color: #b8b5d1;
+        }
+        
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #6366f1;
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+        
+        /* Modern buttons */
+        .modern-btn {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .modern-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .modern-btn:hover::before {
+            left: 100%;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.9) 0%, rgba(79, 70, 229, 0.9) 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.6);
+            background: linear-gradient(135deg, rgba(99, 102, 241, 1) 0%, rgba(79, 70, 229, 1) 100%);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.9) 0%, rgba(124, 58, 237, 0.9) 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(139, 92, 246, 0.6);
+            background: linear-gradient(135deg, rgba(139, 92, 246, 1) 0%, rgba(124, 58, 237, 1) 100%);
+        }
+        
+        .btn-accent {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.9) 0%, rgba(8, 145, 178, 0.9) 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(6, 182, 212, 0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .btn-accent:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(6, 182, 212, 0.6);
+            background: linear-gradient(135deg, rgba(6, 182, 212, 1) 0%, rgba(8, 145, 178, 1) 100%);
+        }
+        
+        /* Pulsing animation for executing areas */
+        .pulse-green {
+            animation: pulse-green 2s infinite;
+        }
+        
+        @keyframes pulse-green {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* Modal styles */
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        
+        /* Custom scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+        
+        /* Show sidebar button */
+        .show-sidebar-btn {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            border: none;
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            z-index: 9999 !important;
+            position: fixed !important;
+            top: 1rem !important;
+            left: 1rem !important;
+        }
+        
+        .show-sidebar-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.6);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <!-- Main Layout Container -->
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div id="sidebar" class="sidebar custom-scrollbar transition-all duration-300">
+            <!-- Header -->
+            <div class="sidebar-header">
+                <div class="sidebar-title">CMTU-LD</div>
+                <div class="sidebar-subtitle">Dashboard Operacional</div>
+                <button id="toggleSidebar" class="toggle-btn mt-3">
+                    Ocultar Menu
+                </button>
+            </div>
+            
+            <!-- Services Menu -->
+            <div class="service-menu">
+                <h3 class="section-header">Serviços</h3>
+                
+                <!-- Roçagem de Áreas Públicas -->
+                <div class="service-item">
+                    <div class="service-header" onclick="toggleSubmenu('mowing-submenu')">
+                        <div class="flex items-center">
+                            <svg class="service-icon" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+                            </svg>
+                            <span class="service-title">Roçagem de Áreas Públicas</span>
+                        </div>
+                        <svg class="expand-icon" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div id="mowing-submenu" class="submenu">
+                        <div class="submenu-item" onclick="toggleSubservice('mowing', 'giro-zero')">
+                            <input type="checkbox" id="filter-mowing-giro-zero" class="submenu-checkbox" checked>
+                            <span>Giro Zero</span>
+                        </div>
+                        <div class="submenu-item" onclick="toggleSubservice('mowing', 'acabamento')">
+                            <input type="checkbox" id="filter-mowing-acabamento" class="submenu-checkbox" checked>
+                            <span>Acabamento</span>
+                        </div>
+                        <div class="submenu-item" onclick="toggleSubservice('mowing', 'coleta')">
+                            <input type="checkbox" id="filter-mowing-coleta" class="submenu-checkbox" checked>
+                            <span>Coleta</span>
+                        </div>
+                        <div class="submenu-item" onclick="toggleSubservice('mowing', 'touceiras')">
+                            <input type="checkbox" id="filter-mowing-touceiras" class="submenu-checkbox" checked>
+                            <span>Touceiras</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Jardins -->
+                <div class="service-item">
+                    <div class="service-header" onclick="toggleSubmenu('gardens-submenu')">
+                        <div class="flex items-center">
+                            <svg class="service-icon" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
+                            </svg>
+                            <span class="service-title">Jardins</span>
+                        </div>
+                        <svg class="expand-icon" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div id="gardens-submenu" class="submenu">
+                        <div class="submenu-item" onclick="toggleSubservice('gardens', 'manutencao')">
+                            <input type="checkbox" id="filter-gardens-manutencao" class="submenu-checkbox" checked>
+                            <span>Manutenção</span>
+                        </div>
+                        <div class="submenu-item" onclick="toggleSubservice('gardens', 'irrigacao')">
+                            <input type="checkbox" id="filter-gardens-irrigacao" class="submenu-checkbox" checked>
+                            <span>Irrigação</span>
+                        </div>
+                        <div class="submenu-item" onclick="toggleSubservice('gardens', 'plantio')">
+                            <input type="checkbox" id="filter-gardens-plantio" class="submenu-checkbox" checked>
+                            <span>Plantio</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Status Filters -->
+            <div class="form-section">
+                <h3>Status</h3>
+                <div class="space-y-2">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="filter-pending" class="submenu-checkbox" checked>
+                        <span class="form-label">Pendente</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" id="filter-executing" class="submenu-checkbox" checked>
+                        <span class="form-label">Executando</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" id="filter-completed" class="submenu-checkbox" checked>
+                        <span class="form-label">Concluído</span>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Team Filters -->
+            <div class="form-section">
+                <h3>Equipes</h3>
+                <div class="space-y-2">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="filter-team-1" class="submenu-checkbox" checked>
+                        <span class="form-label">Equipe 1</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" id="filter-team-2" class="submenu-checkbox" checked>
+                        <span class="form-label">Equipe 2</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" id="filter-team-3" class="submenu-checkbox" checked>
+                        <span class="form-label">Equipe 3</span>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Actions -->
+            <div class="form-section">
+                <h3>Ações</h3>
+                <div class="space-y-3">
+                    <button id="calculateSchedule" class="modern-btn btn-primary">
+                        Calcular Cronograma
+                    </button>
+                    <button id="exportData" class="modern-btn btn-secondary">
+                        Exportar Dados
+                    </button>
+                    <button id="toggleDraw" class="modern-btn btn-accent">
+                        Desenhar Área
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Settings -->
+            <div class="form-section">
+                <h3>Configurações</h3>
+                
+                <div class="form-group">
+                    <label class="form-label">Data de Início:</label>
+                    <input type="date" id="startDate" class="form-input">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Dias de Produção:</label>
+                    <input type="number" id="productionDays" value="5" min="1" max="30" class="form-input">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Prioridade:</label>
+                    <select id="priority" class="form-select">
+                        <option value="high">Alta</option>
+                        <option value="medium" selected>Média</option>
+                        <option value="low">Baixa</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Import Data Section -->
+            <div class="form-section">
+                <h3>📊 Importar Dados</h3>
+                <div class="form-group">
+                    <label class="form-label">Arquivo CSV:</label>
+                    <input type="file" id="csvFileInput" accept=".csv" class="form-input" style="padding: 0.5rem;">
+                    <button id="importCsvBtn" class="btn-primary mt-2" style="width: 100%;">
+                        📤 Importar CSV
+                    </button>
+                </div>
+                <div id="importStatus" class="mt-2 text-sm" style="color: #10b981;"></div>
+            </div>
+        </div>
+        
+        <!-- Sidebar Toggle Button (when collapsed) -->
+        <button id="showSidebar" class="hidden fixed top-4 left-4 z-50 show-sidebar-btn">
+            → Mostrar Painel
+        </button>
+        
+        <!-- Map Container -->
+        <div class="flex-1 relative">
+            <div id="map"></div>
+        </div>
+    </div>
+    
+    <!-- Area Details Modal -->
+    <div id="areaModal" class="fixed inset-0 modal-overlay z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-96 overflow-y-auto">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">Detalhes da Área</h3>
+                        <button id="closeModal" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div id="modalContent" class="space-y-4">
+                        <!-- Content will be populated by JavaScript -->
+                    </div>
+                    
+                    <div class="mt-6 flex space-x-2">
+                        <button id="startService" class="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 text-sm">
+                            Iniciar Serviço
+                        </button>
+                        <button id="completeService" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 text-sm">
+                            Concluir Serviço
+                        </button>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Atribuir Equipe</label>
+                        <select id="assignTeam" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+                            <option value="">Selecione uma equipe...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
+            crossorigin=""></script>
+    
+    <!-- Leaflet Draw JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    
+    <script>
+        /**
+         * CMTU-LD Dashboard Operacional
+         * Sistema de gerenciamento de operações urbanas
+         */
+        
+        // --- CONFIGURAÇÃO DA APLICAÇÃO ---
+        const APP_CONFIG = {
+            mowingProductionRate: {
+                lote1: 25000, // m²/dia
+                lote2: 20000  // m²/dia
+            }
+        };
+        
+        // --- BANCO DE DADOS SIMULADO ---
+        const db = {
+            services: [
+                {
+                    id: "rocagem",
+                    name: "Roçagem de Áreas Públicas",
+                    areas: [
+                        // Dados de exemplo baseados nas especificações
+                        { 
+                            id: 1, ordem: 1, tipo: "area publica", 
+                            endereco: "Av Jorge Casoni - Terminal Rodoviário", 
+                            bairro: "Casoni", metragem_m2: 29184.98, 
+                            lat: -23.3044206, lng: -51.1513729, 
+                            lote: 1, status: "Pendente", history: [], 
+                            polygon: null, scheduledDate: null 
+                        },
+                        { 
+                            id: 2, ordem: 2, tipo: "praça", 
+                            endereco: "Rua Carijós c/ Oraruana", 
+                            bairro: "Paraná", metragem_m2: 2332.83, 
+                            lat: -23.3045262, lng: -51.1480067, 
+                            lote: 1, status: "Pendente", history: [], 
+                            polygon: null, scheduledDate: null 
+                        },
+                        { 
+                            id: 3, ordem: 1, tipo: "área verde", 
+                            endereco: "Av. Maringá x Rua Prof. Joaquim", 
+                            bairro: "Centro", metragem_m2: 15000, 
+                            lat: -23.3100000, lng: -51.1600000, 
+                            lote: 2, status: "Em Execução", history: [
+                                { date: new Date('2024-01-15'), status: 'Iniciado' }
+                            ], 
+                            polygon: null, scheduledDate: new Date() 
+                        },
+                        { 
+                            id: 4, ordem: 2, tipo: "canteiro", 
+                            endereco: "Rua Sergipe x Av. Juscelino", 
+                            bairro: "Vila Nova", metragem_m2: 8500, 
+                            lat: -23.3200000, lng: -51.1700000, 
+                            lote: 2, status: "Concluído", history: [
+                                { date: new Date('2024-01-10'), status: 'Iniciado' },
+                                { date: new Date('2024-01-12'), status: 'Concluído' }
+                            ], 
+                            polygon: null, scheduledDate: null 
+                        }
+                    ]
+                },
+                {
+                    id: "jardins",
+                    name: "Manutenção de Jardins",
+                    areas: [
+                        { 
+                            id: 26, tipo: "ROT", 
+                            endereco: "Av. Henrique Mansano x Av. Lucia Helena (Sanepar)", 
+                            servico: "Manutenção", 
+                            lat: -23.282252, lng: -51.155120 
+                        },
+                        { 
+                            id: 5, tipo: "ROT", 
+                            endereco: "Av. Maringá x Rua Prof. Joaquim de Matos Barreto", 
+                            servico: "Irrigação", 
+                            lat: -23.324934, lng: -51.176449 
+                        }
+                    ]
+                }
+            ],
+            teams: [
+                { id: 1, service: "rocagem", type: "Giro Zero", lote: 1, status: "Idle", currentAreaId: null, location: { lat: -23.30, lng: -51.15 } },
+                { id: 2, service: "rocagem", type: "Acabamento", lote: 1, status: "Idle", currentAreaId: null, location: { lat: -23.30, lng: -51.15 } },
+                { id: 3, service: "rocagem", type: "Coleta", lote: 1, status: "Idle", currentAreaId: null, location: { lat: -23.30, lng: -51.15 } },
+                { id: 4, service: "rocagem", type: "Touceiras", lote: 1, status: "Idle", currentAreaId: null, location: { lat: -23.30, lng: -51.15 } },
+                { id: 5, service: "rocagem", type: "Giro Zero", lote: 2, status: "Idle", currentAreaId: null, location: { lat: -23.31, lng: -51.16 } },
+                { id: 6, service: "rocagem", type: "Acabamento", lote: 2, status: "Idle", currentAreaId: null, location: { lat: -23.31, lng: -51.16 } },
+                { id: 7, service: "jardins", type: "Manutenção", lote: null, status: "Idle", currentAreaId: null, location: { lat: -23.32, lng: -51.17 } },
+                { id: 8, service: "jardins", type: "Irrigação", lote: null, status: "Idle", currentAreaId: null, location: { lat: -23.32, lng: -51.17 } }
+            ]
+        };
+        
+        // --- VARIÁVEIS GLOBAIS ---
+        let map;
+        let layerGroups = {};
+        let drawControl;
+        let currentSelectedArea = null;
+        
+        // --- CORES DE STATUS ---
+        const statusColors = {
+            executing: '#00FF00',    // Verde brilhante para "Em Execução"
+            today: '#FFFF00',        // Amarelo para "Hoje"
+            next3days: '#FFD700',    // Amarelo claro para "Próximos 3 dias"
+            nextWeek: '#87CEEB',     // Azul claro para "Próxima semana"
+            completed: '#006400',    // Verde escuro para "Concluído recente"
+            pending: '#808080'       // Cinza para "Pendente"
+        };
+        
+        /**
+         * Adiciona dias a uma data
+         * @param {Date} date - Data base
+         * @param {number} days - Número de dias a adicionar
+         * @returns {Date} Nova data
+         */
+        function addDays(date, days) {
+            const result = new Date(date);
+            result.setDate(result.getDate() + days);
+            return result;
+        }
+        
+        /**
+         * Adiciona dias úteis a uma data (pula fins de semana)
+         * @param {Date} date - Data base
+         * @param {number} days - Número de dias úteis a adicionar
+         * @returns {Date} Nova data
+         */
+        function addBusinessDays(date, days) {
+            let result = new Date(date);
+            let addedDays = 0;
+            
+            while (addedDays < days) {
+                result.setDate(result.getDate() + 1);
+                // Se não for sábado (6) nem domingo (0)
+                if (result.getDay() !== 0 && result.getDay() !== 6) {
+                    addedDays++;
+                }
+            }
+            
+            return result;
+        }
+        
+        /**
+         * Calcula o cronograma de roçagem baseado na produção diária
+         * Esta é a função principal do sistema de agendamento
+         */
+        function calculateMowingSchedule() {
+            console.log('Calculando cronograma de roçagem...');
+            
+            // Usar valores padrão já que os campos específicos não existem no novo layout
+            const productionRateLote1 = APP_CONFIG.mowingProductionRate.lote1;
+            const productionRateLote2 = APP_CONFIG.mowingProductionRate.lote2;
+            
+            // Pegar valores dos campos que existem
+            const startDateElement = document.getElementById('startDate');
+            const productionDaysElement = document.getElementById('productionDays');
+            
+            const startDate = startDateElement ? new Date(startDateElement.value || new Date().toISOString().split('T')[0]) : new Date();
+            const productionDays = productionDaysElement ? parseInt(productionDaysElement.value) || 5 : 5;
+            
+            let currentDateLote1 = new Date(startDate);
+            let currentDateLote2 = new Date(startDate);
+            
+            // Zera horas para comparação correta
+            currentDateLote1.setHours(0, 0, 0, 0);
+            currentDateLote2.setHours(0, 0, 0, 0);
+            
+            const rocagemAreas = db.services.find(s => s.id === 'rocagem').areas;
+            
+            // Filtra e ordena áreas pendentes por lote e ordem
+            const pendingLote1 = rocagemAreas
+                .filter(area => area.lote === 1 && area.status === 'Pendente')
+                .sort((a, b) => a.ordem - b.ordem);
+                
+            const pendingLote2 = rocagemAreas
+                .filter(area => area.lote === 2 && area.status === 'Pendente')
+                .sort((a, b) => a.ordem - b.ordem);
+            
+            // Calcula cronograma para Lote 1
+            pendingLote1.forEach(area => {
+                area.scheduledDate = new Date(currentDateLote1);
+                const daysToComplete = Math.ceil(area.metragem_m2 / productionRateLote1);
+                currentDateLote1 = addBusinessDays(currentDateLote1, daysToComplete);
+            });
+            
+            // Calcula cronograma para Lote 2
+            pendingLote2.forEach(area => {
+                area.scheduledDate = new Date(currentDateLote2);
+                const daysToComplete = Math.ceil(area.metragem_m2 / productionRateLote2);
+                currentDateLote2 = addBusinessDays(currentDateLote2, daysToComplete);
+            });
+            
+            console.log('Cronograma calculado com sucesso');
+            
+            // Atualiza visualização no mapa
+            renderMowingAreas();
+        }
+        
+        /**
+         * Inicializa o mapa Leaflet
+         */
+        function initializeMap() {
+            console.log('Inicializando mapa...');
+            
+            // Cria o mapa centrado em Londrina
+            map = L.map('map').setView([-23.31, -51.16], 13);
+            
+            // Define as camadas de tiles
+            const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                name: 'Mapa Padrão'
+            });
+            
+            const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '© Esri, Maxar, Earthstar Geographics',
+                name: 'Satélite'
+            });
+            
+            const hybridLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '© Esri, Maxar, Earthstar Geographics',
+                name: 'Híbrido'
+            });
+            
+            const streetLabels = L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/toner-labels/{z}/{x}/{y}{r}.png', {
+                attribution: '© Stamen Design, © OpenStreetMap contributors',
+                opacity: 0.7
+            });
+            
+            // Adiciona camada padrão
+            osmLayer.addTo(map);
+            
+            // Cria controle de camadas para o prefeito
+            const baseLayers = {
+                "🗺️ Mapa Padrão": osmLayer,
+                "🛰️ Satélite": satelliteLayer,
+                "🌍 Híbrido": L.layerGroup([satelliteLayer, streetLabels])
+            };
+            
+            // Adiciona controle de camadas no canto superior direito
+            L.control.layers(baseLayers, null, {
+                position: 'topright',
+                collapsed: false
+            }).addTo(map);
+            
+            // Inicializa grupos de camadas
+            layerGroups = {
+                rocagemLote1: L.layerGroup().addTo(map),
+                rocagemLote2: L.layerGroup().addTo(map),
+                jardins: L.layerGroup().addTo(map),
+                teamsGiroZero: L.layerGroup().addTo(map),
+                teamsAcabamento: L.layerGroup().addTo(map),
+                teamsColeta: L.layerGroup().addTo(map),
+                teamsTouceiras: L.layerGroup().addTo(map)
+            };
+            
+            // Configura controle de desenho
+            setupDrawControl();
+            
+            console.log('Mapa inicializado com sucesso');
+        }
+        
+        /**
+         * Configura o controle de desenho de polígonos
+         */
+        function setupDrawControl() {
+            const drawOptions = {
+                position: 'topright',
+                draw: {
+                    polygon: {
+                        allowIntersection: false,
+                        drawError: {
+                            color: '#e1e100',
+                            message: '<strong>Erro:</strong> As bordas do polígono não podem se cruzar!'
+                        },
+                        shapeOptions: {
+                            color: '#97009c'
+                        }
+                    },
+                    polyline: false,
+                    rectangle: false,
+                    circle: false,
+                    marker: false,
+                    circlemarker: false
+                },
+                edit: {
+                    featureGroup: new L.FeatureGroup()
+                }
+            };
+            
+            drawControl = new L.Control.Draw(drawOptions);
+            map.addControl(drawControl);
+            
+            // Event listener para quando um polígono é criado
+            map.on(L.Draw.Event.CREATED, function(event) {
+                const layer = event.layer;
+                const latlngs = layer.getLatLngs()[0];
+                
+                // Aqui você pode implementar a lógica para associar o polígono a uma área
+                console.log('Polígono criado:', latlngs);
+                
+                // Por enquanto, apenas adiciona ao mapa
+                map.addLayer(layer);
+            });
+        }
+        
+        /**
+         * Determina a cor baseada no status da área
+         * @param {Object} area - Objeto da área
+         * @returns {string} Cor hexadecimal
+         */
+        function getAreaColor(area) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            if (area.status === 'Em Execução') {
+                return statusColors.executing;
+            } else if (area.scheduledDate && area.scheduledDate.toDateString() === today.toDateString()) {
+                return statusColors.today;
+            } else if (area.scheduledDate && area.scheduledDate > today && area.scheduledDate <= addDays(today, 3)) {
+                return statusColors.next3days;
+            } else if (area.scheduledDate && area.scheduledDate > addDays(today, 3) && area.scheduledDate <= addDays(today, 7)) {
+                return statusColors.nextWeek;
+            } else if (area.status === 'Concluído' && area.history.length > 0) {
+                const lastHistory = area.history[area.history.length - 1];
+                if (lastHistory.date >= addDays(today, -7)) {
+                    return statusColors.completed;
+                }
+            }
+            
+            return statusColors.pending;
+        }
+        
+        /**
+         * Renderiza as áreas de roçagem no mapa
+         */
+        function renderMowingAreas() {
+            console.log('Renderizando áreas de roçagem...');
+            
+            // Limpa camadas existentes
+            layerGroups.rocagemLote1.clearLayers();
+            layerGroups.rocagemLote2.clearLayers();
+            
+            const rocagemAreas = db.services.find(s => s.id === 'rocagem').areas;
+            
+            rocagemAreas.forEach(area => {
+                let marker;
+                const color = getAreaColor(area);
+                
+                if (area.polygon) {
+                    // Se tem polígono definido, desenha o polígono
+                    marker = L.polygon(area.polygon, {
+                        color: color,
+                        fillColor: color,
+                        fillOpacity: 0.5,
+                        weight: 2
+                    });
+                } else {
+                    // Senão, desenha um marcador
+                    const markerOptions = {
+                        color: color,
+                        fillColor: color,
+                        fillOpacity: 0.8,
+                        radius: 8,
+                        weight: 2
+                    };
+                    
+                    marker = L.circleMarker([area.lat, area.lng], markerOptions);
+                }
+                
+                // Adiciona efeito pulsante se estiver em execução
+                if (area.status === 'Em Execução') {
+                    // Para CircleMarker, adiciona classe CSS após adicionar ao mapa
+                    marker.on('add', function() {
+                        const element = this.getElement ? this.getElement() : null;
+                        if (element) {
+                            element.classList.add('pulse-green');
+                        }
+                    });
+                }
+                
+                // Tooltip com informações básicas
+                const tooltipContent = `
+                    <strong>${area.endereco}</strong><br>
+                    Bairro: ${area.bairro}<br>
+                    Status: ${area.status}<br>
+                    ${area.scheduledDate ? `Agendado: ${area.scheduledDate.toLocaleDateString('pt-BR')}` : ''}
+                `;
+                
+                marker.bindTooltip(tooltipContent);
+                
+                // Click event para abrir modal
+                marker.on('click', () => openAreaModal(area));
+                
+                // Adiciona à camada correta
+                const layerGroup = area.lote === 1 ? layerGroups.rocagemLote1 : layerGroups.rocagemLote2;
+                layerGroup.addLayer(marker);
+            });
+            
+            console.log('Áreas de roçagem renderizadas');
+        }
+        
+        /**
+         * Renderiza as áreas de jardins no mapa
+         */
+        function renderGardenAreas() {
+            console.log('Renderizando áreas de jardins...');
+            
+            layerGroups.jardins.clearLayers();
+            
+            const jardinsAreas = db.services.find(s => s.id === 'jardins').areas;
+            
+            jardinsAreas.forEach(area => {
+                const marker = L.circleMarker([area.lat, area.lng], {
+                    color: '#228B22',
+                    fillColor: '#32CD32',
+                    fillOpacity: 0.8,
+                    radius: 6,
+                    weight: 2
+                });
+                
+                const tooltipContent = `
+                    <strong>${area.endereco}</strong><br>
+                    Tipo: ${area.tipo}<br>
+                    Serviço: ${area.servico}
+                `;
+                
+                marker.bindTooltip(tooltipContent);
+                marker.on('click', () => openAreaModal(area));
+                
+                layerGroups.jardins.addLayer(marker);
+            });
+            
+            console.log('Áreas de jardins renderizadas');
+        }
+        
+        /**
+         * Renderiza as equipes no mapa
+         */
+        function renderTeams() {
+            console.log('Renderizando equipes...');
+            
+            // Limpa todas as camadas de equipes
+            Object.keys(layerGroups).forEach(key => {
+                if (key.startsWith('teams')) {
+                    layerGroups[key].clearLayers();
+                }
+            });
+            
+            db.teams.forEach(team => {
+                const iconHtml = `
+                    <div style="
+                        background-color: ${team.status === 'Idle' ? '#FFA500' : '#FF4500'};
+                        width: 20px;
+                        height: 20px;
+                        border-radius: 50%;
+                        border: 2px solid white;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 10px;
+                        font-weight: bold;
+                        color: white;
+                        opacity: ${team.status === 'Idle' ? '0.7' : '1'};
+                    ">
+                        ${team.type.charAt(0)}
+                    </div>
+                `;
+                
+                const marker = L.marker([team.location.lat, team.location.lng], {
+                    icon: L.divIcon({
+                        html: iconHtml,
+                        className: 'custom-team-marker',
+                        iconSize: [20, 20],
+                        iconAnchor: [10, 10]
+                    })
+                });
+                
+                const tooltipContent = `
+                    <strong>Equipe ${team.type}</strong><br>
+                    Serviço: ${team.service}<br>
+                    Status: ${team.status}<br>
+                    ${team.lote ? `Lote: ${team.lote}` : ''}
+                `;
+                
+                marker.bindTooltip(tooltipContent);
+                
+                // Adiciona à camada correta baseada no tipo
+                let layerKey;
+                switch(team.type) {
+                    case 'Giro Zero': layerKey = 'teamsGiroZero'; break;
+                    case 'Acabamento': layerKey = 'teamsAcabamento'; break;
+                    case 'Coleta': layerKey = 'teamsColeta'; break;
+                    case 'Touceiras': layerKey = 'teamsTouceiras'; break;
+                    default: layerKey = 'teamsGiroZero';
+                }
+                
+                if (layerGroups[layerKey]) {
+                    layerGroups[layerKey].addLayer(marker);
+                }
+            });
+            
+            console.log('Equipes renderizadas');
+        }
+        
+        /**
+         * Abre o modal com detalhes da área
+         * @param {Object} area - Objeto da área selecionada
+         */
+        function openAreaModal(area) {
+            currentSelectedArea = area;
+            
+            const modal = document.getElementById('areaModal');
+            const modalContent = document.getElementById('modalContent');
+            
+            // Constrói o conteúdo do modal
+            let historyHtml = '<p class="text-sm text-gray-600">Nenhum histórico disponível</p>';
+            
+            if (area.history && area.history.length > 0) {
+                historyHtml = '<ul class="text-sm space-y-1">';
+                area.history.forEach(entry => {
+                    historyHtml += `<li class="flex justify-between">
+                        <span>${entry.status}</span>
+                        <span class="text-gray-500">${entry.date.toLocaleDateString('pt-BR')}</span>
+                    </li>`;
+                });
+                historyHtml += '</ul>';
+            }
+            
+            let nextServiceHtml = '';
+            if (area.scheduledDate && area.status === 'Pendente') {
+                nextServiceHtml = `
+                    <div class="bg-blue-50 p-3 rounded-md">
+                        <p class="text-sm font-medium text-blue-800">
+                            Próxima roçagem estimada em: ${area.scheduledDate.toLocaleDateString('pt-BR')}
+                        </p>
+                    </div>
+                `;
+            }
+            
+            modalContent.innerHTML = `
+                <div class="space-y-3">
+                    <div>
+                        <h4 class="font-medium text-gray-900">Endereço</h4>
+                        <p class="text-sm text-gray-600">${area.endereco}</p>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-900">Bairro</h4>
+                        <p class="text-sm text-gray-600">${area.bairro}</p>
+                    </div>
+                    ${area.metragem_m2 ? `
+                    <div>
+                        <h4 class="font-medium text-gray-900">Metragem</h4>
+                        <p class="text-sm text-gray-600">${area.metragem_m2.toLocaleString('pt-BR')} m²</p>
+                    </div>
+                    ` : ''}
+                    <div>
+                        <h4 class="font-medium text-gray-900">Status</h4>
+                        <p class="text-sm text-gray-600">${area.status}</p>
+                    </div>
+                    ${area.lote ? `
+                    <div>
+                        <h4 class="font-medium text-gray-900">Lote</h4>
+                        <p class="text-sm text-gray-600">Lote ${area.lote}</p>
+                    </div>
+                    ` : ''}
+                    <div>
+                        <h4 class="font-medium text-gray-900">Histórico de Serviço</h4>
+                        ${historyHtml}
+                    </div>
+                    ${nextServiceHtml}
+                </div>
+            `;
+            
+            // Popula dropdown de equipes
+            populateTeamDropdown();
+            
+            modal.classList.remove('hidden');
+        }
+        
+        /**
+         * Popula o dropdown de equipes disponíveis
+         */
+        function populateTeamDropdown() {
+            const select = document.getElementById('assignTeam');
+            select.innerHTML = '<option value="">Selecione uma equipe...</option>';
+            
+            const availableTeams = db.teams.filter(team => team.status === 'Idle');
+            
+            availableTeams.forEach(team => {
+                const option = document.createElement('option');
+                option.value = team.id;
+                option.textContent = `${team.type} - ${team.service}${team.lote ? ` (Lote ${team.lote})` : ''}`;
+                select.appendChild(option);
+            });
+        }
+        
+        /**
+         * Fecha o modal
+         */
+        function closeModal() {
+            document.getElementById('areaModal').classList.add('hidden');
+            currentSelectedArea = null;
+        }
+        
+        /**
+         * Inicia um serviço
+         */
+        function startService() {
+            if (!currentSelectedArea) return;
+            
+            currentSelectedArea.status = 'Em Execução';
+            currentSelectedArea.history.push({
+                date: new Date(),
+                status: 'Iniciado'
+            });
+            
+            // Atualiza visualização
+            renderMowingAreas();
+            closeModal();
+            
+            console.log('Serviço iniciado para área:', currentSelectedArea.endereco);
+        }
+        
+        /**
+         * Completa um serviço
+         */
+        function completeService() {
+            if (!currentSelectedArea) return;
+            
+            currentSelectedArea.status = 'Concluído';
+            currentSelectedArea.history.push({
+                date: new Date(),
+                status: 'Concluído'
+            });
+            
+            // Recalcula cronograma
+            calculateMowingSchedule();
+            closeModal();
+            
+            console.log('Serviço concluído para área:', currentSelectedArea.endereco);
+        }
+        
+        /**
+         * Atribui equipe a uma área
+         */
+        function assignTeam() {
+            const teamId = parseInt(document.getElementById('assignTeam').value);
+            if (!teamId || !currentSelectedArea) return;
+            
+            const team = db.teams.find(t => t.id === teamId);
+            if (team) {
+                team.status = 'Assigned';
+                team.currentAreaId = currentSelectedArea.id;
+                
+                // Move equipe para localização da área (se disponível)
+                if (currentSelectedArea.lat && currentSelectedArea.lng) {
+                    team.location.lat = currentSelectedArea.lat;
+                    team.location.lng = currentSelectedArea.lng;
+                }
+                
+                renderTeams();
+                closeModal();
+                
+                console.log('Equipe atribuída:', team.type, 'para área:', currentSelectedArea.endereco);
+            }
+        }
+        
+        /**
+         * Alterna a visibilidade de um submenu
+         * @param {string} submenuId - ID do submenu a ser alternado
+         */
+        function toggleSubmenu(submenuId) {
+            const submenu = document.getElementById(submenuId);
+            const expandIcon = submenu.previousElementSibling.querySelector('.expand-icon');
+            
+            if (submenu.classList.contains('expanded')) {
+                submenu.classList.remove('expanded');
+                expandIcon.classList.remove('expanded');
+            } else {
+                submenu.classList.add('expanded');
+                expandIcon.classList.add('expanded');
+            }
+        }
+        
+        /**
+         * Alterna um subserviço específico
+         * @param {string} service - Serviço principal (mowing, gardens)
+         * @param {string} subservice - Subserviço específico
+         */
+        function toggleSubservice(service, subservice) {
+            const checkbox = document.getElementById(`filter-${service}-${subservice}`);
+            checkbox.checked = !checkbox.checked;
+            
+            // Adicionar lógica de filtro aqui se necessário
+            console.log(`Toggled ${service}/${subservice}: ${checkbox.checked}`);
+        }
+        
+        /**
+         * Configura os event listeners
+         */
+        function setupEventListeners() {
+            // Sidebar toggle - com verificações de existência
+            const toggleBtn = document.getElementById('toggleSidebar');
+            const showBtn = document.getElementById('showSidebar');
+            
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
+                    const sidebar = document.getElementById('sidebar');
+                    const showButton = document.getElementById('showSidebar');
+                    
+                    if (sidebar && showButton) {
+                        sidebar.classList.add('hidden');
+                        showButton.classList.remove('hidden');
+                        console.log('Menu ocultado - botão mostrar painel deve aparecer');
+                    }
+                });
+            }
+            
+            if (showBtn) {
+                showBtn.addEventListener('click', () => {
+                    const sidebar = document.getElementById('sidebar');
+                    const showButton = document.getElementById('showSidebar');
+                    
+                    if (sidebar && showButton) {
+                        sidebar.classList.remove('hidden');
+                        showButton.classList.add('hidden');
+                        console.log('Menu mostrado - botão mostrar painel ocultado');
+                    }
+                });
+            }
+            
+            // Layer controls - Atualizado para novos IDs
+            const filterCheckboxes = [
+                'filter-mowing-giro-zero', 'filter-mowing-acabamento', 'filter-mowing-coleta', 'filter-mowing-touceiras',
+                'filter-gardens-manutencao', 'filter-gardens-irrigacao', 'filter-gardens-plantio',
+                'filter-pending', 'filter-executing', 'filter-completed',
+                'filter-team-1', 'filter-team-2', 'filter-team-3'
+            ];
+            
+            filterCheckboxes.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('change', (e) => {
+                        // Lógica de filtro atualizada
+                        console.log(`Filter ${id} changed: ${e.target.checked}`);
+                        // Aqui você pode adicionar a lógica específica de filtro para cada tipo
+                    });
+                }
+            });
+            
+            // Botões de ação atualizados
+            const calculateBtn = document.getElementById('calculateSchedule');
+            const exportBtn = document.getElementById('exportData');
+            const drawBtn = document.getElementById('toggleDraw');
+            const importCsvBtn = document.getElementById('importCsvBtn');
+            const csvFileInput = document.getElementById('csvFileInput');
+            
+            if (calculateBtn) {
+                calculateBtn.addEventListener('click', calculateMowingSchedule);
+            }
+            if (exportBtn) {
+                exportBtn.addEventListener('click', () => {
+                    console.log('Exportando dados...');
+                    // Implementar lógica de exportação
+                });
+            }
+            if (drawBtn) {
+                drawBtn.addEventListener('click', () => {
+                    console.log('Modo de desenho ativado');
+                    // Implementar lógica de desenho
+                });
+            }
+            
+            // Event listener para importação CSV
+            if (importCsvBtn && csvFileInput) {
+                importCsvBtn.addEventListener('click', () => {
+                    const file = csvFileInput.files[0];
+                    if (file) {
+                        if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+                            processCSVFile(file);
+                        } else {
+                            const statusDiv = document.getElementById('importStatus');
+                            statusDiv.textContent = '❌ Por favor, selecione um arquivo CSV válido';
+                            statusDiv.style.color = '#ef4444';
+                        }
+                    } else {
+                        const statusDiv = document.getElementById('importStatus');
+                        statusDiv.textContent = '⚠️ Por favor, selecione um arquivo CSV';
+                        statusDiv.style.color = '#f59e0b';
+                    }
+                });
+            }
+            
+            // Modal events - com verificação de existência
+            const closeModalBtn = document.getElementById('closeModal');
+            const startServiceBtn = document.getElementById('startService');
+            const completeServiceBtn = document.getElementById('completeService');
+            const assignTeamSelect = document.getElementById('assignTeam');
+            const drawAreaBtn = document.getElementById('draw-area');
+            const saveAreaBtn = document.getElementById('save-area');
+            
+            if (closeModalBtn) {
+                closeModalBtn.addEventListener('click', closeModal);
+            }
+            if (startServiceBtn) {
+                startServiceBtn.addEventListener('click', startService);
+            }
+            if (completeServiceBtn) {
+                completeServiceBtn.addEventListener('click', completeService);
+            }
+            if (assignTeamSelect) {
+                assignTeamSelect.addEventListener('change', assignTeam);
+            }
+            if (drawAreaBtn) {
+                drawAreaBtn.addEventListener('click', () => {
+                    // Ativa modo de desenho
+                    console.log('Modo de desenho ativado');
+                });
+            }
+            if (saveAreaBtn) {
+                saveAreaBtn.addEventListener('click', () => {
+                const endereco = document.getElementById('new-endereco').value;
+                const bairro = document.getElementById('new-bairro').value;
+                const metragem = parseInt(document.getElementById('new-metragem').value);
+                const lote = parseInt(document.getElementById('new-lote').value);
+                
+                if (endereco && bairro && metragem && lote) {
+                    const rocagemService = db.services.find(s => s.id === 'rocagem');
+                    const newId = Math.max(...rocagemService.areas.map(a => a.id)) + 1;
+                    const newOrdem = Math.max(...rocagemService.areas.filter(a => a.lote === lote).map(a => a.ordem)) + 1;
+                    
+                    const newArea = {
+                        id: newId,
+                        ordem: newOrdem,
+                        tipo: "área cadastrada",
+                        endereco: endereco,
+                        bairro: bairro,
+                        metragem_m2: metragem,
+                        lat: -23.31 + (Math.random() - 0.5) * 0.1, // Coordenada aleatória próxima
+                        lng: -51.16 + (Math.random() - 0.5) * 0.1,
+                        lote: lote,
+                        status: "Pendente",
+                        history: [],
+                        polygon: null,
+                        scheduledDate: null
+                    };
+                    
+                    rocagemService.areas.push(newArea);
+                    
+                    // Limpa formulário
+                    document.getElementById('new-endereco').value = '';
+                    document.getElementById('new-bairro').value = '';
+                    document.getElementById('new-metragem').value = '';
+                    
+                    // Recalcula cronograma e atualiza mapa
+                    calculateMowingSchedule();
+                    
+                    console.log('Nova área cadastrada:', newArea);
+                }
+            });
+            }
+            
+            // Fechar modal clicando fora
+            const areaModal = document.getElementById('areaModal');
+            if (areaModal) {
+                areaModal.addEventListener('click', (e) => {
+                    if (e.target.id === 'areaModal') {
+                        closeModal();
+                    }
+                });
+            }
+        }
+        
+        /**
+         * Processa arquivo CSV importado
+         */
+        function processCSVFile(file) {
+            const reader = new FileReader();
+            const statusDiv = document.getElementById('importStatus');
+            
+            statusDiv.textContent = 'Iniciando processamento...';
+            statusDiv.style.color = '#f59e0b';
+            
+            reader.onload = function(e) {
+                try {
+                    console.log('Iniciando processamento do CSV...');
+                    const csv = e.target.result;
+                    
+                    if (!csv || csv.trim() === '') {
+                        throw new Error('Arquivo CSV está vazio');
+                    }
+                    
+                    // Detecta o separador (vírgula, ponto e vírgula, ou tab)
+                    let separator = ',';
+                    if (csv.includes(';') && csv.split(';').length > csv.split(',').length) {
+                        separator = ';';
+                    } else if (csv.includes('\t')) {
+                        separator = '\t';
+                    }
+                    
+                    const lines = csv.split('\n').filter(line => line.trim() !== '');
+                    const importedAreas = [];
+                    
+                    console.log(`Encontradas ${lines.length} linhas, usando separador: "${separator}"`);
+                    statusDiv.textContent = `Processando ${lines.length} linhas...`;
+                    
+                    // Pula o cabeçalho (primeira linha)
+                    for (let i = 1; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (line) {
+                            const columns = line.split(separator).map(col => col.trim().replace(/"/g, ''));
+                            
+                            console.log(`Linha ${i}: ${columns.length} colunas`, columns.slice(0, 5));
+                            
+                            // Flexibilidade no número de colunas - mínimo 3 (ID, endereço, coordenadas)
+                            if (columns.length >= 3) {
+                                // Tenta encontrar coordenadas nas colunas
+                                let lat = null, lng = null;
+                                
+                                // Procura por coordenadas válidas nas colunas
+                                for (let j = 0; j < columns.length; j++) {
+                                    const val = parseFloat(columns[j]);
+                                    if (!isNaN(val)) {
+                                        // Latitude típica do Brasil: -35 a 5
+                                        if (val >= -35 && val <= 5 && lat === null) {
+                                            lat = val;
+                                        }
+                                        // Longitude típica do Brasil: -75 a -30
+                                        else if (val >= -75 && val <= -30 && lng === null) {
+                                            lng = val;
+                                        }
+                                    }
+                                }
+                                
+                                // Se não encontrou coordenadas válidas, usa coordenadas padrão de São Paulo
+                                if (lat === null || lng === null) {
+                                    lat = -23.5505 + (Math.random() - 0.5) * 0.1; // Pequena variação
+                                    lng = -46.6333 + (Math.random() - 0.5) * 0.1;
+                                }
+                                
+                                const area = {
+                                    id: columns[0] || `imported_${i}`,
+                                    type: columns[1] || 'roçagem',
+                                    address: columns[2] || 'Endereço não informado',
+                                    lat: lat,
+                                    lng: lng,
+                                    status: columns[5] || 'pending',
+                                    date: columns[6] || new Date().toISOString().split('T')[0],
+                                    team: columns[7] || 'Equipe 1',
+                                    imported: true
+                                };
+                                
+                                importedAreas.push(area);
+                            }
+                        }
+                    }
+                    
+                    console.log(`Processadas ${importedAreas.length} áreas válidas`);
+                    
+                    if (importedAreas.length === 0) {
+                        throw new Error('Nenhuma área válida encontrada no arquivo');
+                    }
+                    
+                    // Adiciona áreas importadas ao array global
+                    if (typeof mowingAreas !== 'undefined') {
+                        mowingAreas.push(...importedAreas);
+                        // Re-renderiza o mapa
+                        renderMowingAreas();
+                    } else {
+                        console.warn('Array mowingAreas não encontrado, criando novo');
+                        window.mowingAreas = importedAreas;
+                    }
+                    
+                    statusDiv.textContent = `✅ ${importedAreas.length} áreas importadas com sucesso!`;
+                    statusDiv.style.color = '#10b981';
+                    
+                    console.log(`Importação concluída: ${importedAreas.length} áreas`);
+                    
+                } catch (error) {
+                    console.error('Erro detalhado ao processar CSV:', error);
+                    statusDiv.textContent = `❌ Erro: ${error.message}`;
+                    statusDiv.style.color = '#ef4444';
+                }
+            };
+            
+            reader.onerror = function(error) {
+                console.error('Erro ao ler arquivo:', error);
+                statusDiv.textContent = '❌ Erro ao ler o arquivo';
+                statusDiv.style.color = '#ef4444';
+            };
+            
+            reader.readAsText(file, 'UTF-8');
+        }
+        
+        /**
+         * Inicializa a aplicação
+         */
+        function initializeApp() {
+            console.log('Inicializando Dashboard CMTU-LD...');
+            
+            // Inicializa componentes
+            initializeMap();
+            setupEventListeners();
+            
+            // Calcula cronograma inicial
+            calculateMowingSchedule();
+            
+            // Renderiza elementos no mapa
+            renderMowingAreas();
+            renderGardenAreas();
+            renderTeams();
+            
+            console.log('Dashboard CMTU-LD inicializado com sucesso!');
+        }
+        
+        // Inicializa quando o DOM estiver carregado
+        document.addEventListener('DOMContentLoaded', initializeApp);
+        
+    </script>
+</body>
+</html>
