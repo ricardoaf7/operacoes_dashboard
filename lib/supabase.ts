@@ -171,3 +171,30 @@ export const getTeams = async () => {
     throw error;
   }
 };
+
+export const clearAllAreas = async (): Promise<void> => {
+  const { error } = await supabase
+    .from('areas')
+    .delete()
+    .gt('id', 0); // Delete all records where id > 0 (more reliable condition)
+
+  if (error) {
+    console.error('Erro ao limpar áreas:', error);
+    throw error;
+  }
+
+  console.log('Todas as áreas foram removidas com sucesso');
+};
+
+export const insertArea = async (areaData: any): Promise<void> => {
+  const { error } = await supabase
+    .from('areas')
+    .insert([areaData]);
+
+  if (error) {
+    console.error('Erro ao inserir área:', error);
+    throw error;
+  }
+
+  console.log('Área inserida com sucesso');
+};

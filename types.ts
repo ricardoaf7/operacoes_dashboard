@@ -1,6 +1,32 @@
 import { LatLngTuple } from 'leaflet';
 
-export type ServiceId = 'rocagem' | 'jardins' | 'limpeza' | 'lagos' | 'coleta' | 'descarteIrregular' | 'areaAdotada' | 'imported';
+// Main service categories
+export type ServiceCategory = 'limpeza_urbana' | 'residuos';
+
+// Updated service IDs to match the new categorization
+export type ServiceId = 
+  // Limpeza Urbana
+  | 'rocagem_areas_publicas' 
+  | 'jardins' 
+  | 'boa_praca' 
+  | 'varricao' 
+  | 'manutencao_lagos' 
+  | 'poda' 
+  | 'chafariz'
+  // Resíduos
+  | 'coleta_organico_rejeitos' 
+  | 'coleta_reciclaveis' 
+  | 'limpezas_especiais' 
+  | 'limpeza_bocas_lobo' 
+  | 'pevs'
+  // Legacy/imported
+  | 'imported';
+
+export interface ServiceCategoryInfo {
+  id: ServiceCategory;
+  name: string;
+  services: ServiceId[];
+}
 
 export interface HistoryEntry {
     date: Date;
@@ -27,6 +53,7 @@ export interface Area {
 export interface Service {
     id: ServiceId;
     name: string;
+    category: ServiceCategory;
     areas: Area[];
 }
 

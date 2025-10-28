@@ -10,9 +10,21 @@ import {
   Calculator,
   Download,
   Edit3,
-  Upload
+  Upload,
+  TreePine,
+  Scissors,
+  Droplets,
+  Trash2,
+  Recycle,
+  Zap,
+  Waves,
+  MapPin,
+  Database as DatabaseIcon,
+  Plus
 } from 'lucide-react';
-import { Database } from '../types';
+import { Database, ServiceCategory, ServiceId } from '../types';
+import { clearAllAreas } from '../lib/supabase';
+import AreaRegistration from './AreaRegistration';
 
 interface SidebarProps {
   database: any;
@@ -55,16 +67,63 @@ const Sidebar: React.FC<SidebarProps> = ({
   onCsvImport
 }) => {
   const [expandedSections, setExpandedSections] = useState({
-    rocagem: false,
-    jardins: false,
-    outros: false,
+    limpeza_urbana: false,
+    residuos: false,
     equipes: false,
     status: false,
     importar: false
   });
 
+  const [isAreaRegistrationOpen, setIsAreaRegistrationOpen] = useState(false);
+
+  // Service categories configuration
+  const serviceCategories = {
+    limpeza_urbana: {
+      name: 'LIMPEZA URBANA',
+      icon: Leaf,
+      services: [
+        { id: 'rocagem_areas_publicas', name: 'Roçagem de Áreas Públicas', icon: Scissors },
+        { id: 'jardins', name: 'Jardins', icon: Flower2 },
+        { id: 'boa_praca', name: 'Boa Praça', icon: MapPin },
+        { id: 'varricao', name: 'Varrição', icon: Building2 },
+        { id: 'manutencao_lagos', name: 'Manutenção Lagos', icon: Waves },
+        { id: 'poda', name: 'Poda', icon: TreePine },
+        { id: 'chafariz', name: 'Chafariz', icon: Droplets }
+      ]
+    },
+    residuos: {
+      name: 'RESÍDUOS',
+      icon: Trash2,
+      services: [
+        { id: 'coleta_organico_rejeitos', name: 'Coleta de Orgânico e Rejeitos', icon: Trash2 },
+        { id: 'coleta_reciclaveis', name: 'Coleta de Recicláveis', icon: Recycle },
+        { id: 'limpezas_especiais', name: 'Limpezas Especiais (descartes irregulares)', icon: Zap },
+        { id: 'limpeza_bocas_lobo', name: 'Limpeza de Bocas de Lobo', icon: Waves },
+        { id: 'pevs', name: 'PEV\'s', icon: MapPin }
+      ]
+    }
+  };
+
   const [importStatus, setImportStatus] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleClearAreas = async () => {
+    if (window.confirm('Tem certeza que deseja deletar todas as áreas? Esta ação não pode ser desfeita.')) {
+      try {
+        setImportStatus('Limpando dados...');
+        await clearAllAreas();
+        setImportStatus('Dados limpos com sucesso!');
+        // Recarregar a página para atualizar os dados
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } catch (error) {
+        console.error('Erro ao limpar dados:', error);
+        setImportStatus('Erro ao limpar dados');
+        setTimeout(() => setImportStatus(''), 3000);
+      }
+    }
+  };
 
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections(prev => ({
@@ -201,6 +260,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
   };
   return (
+    <>
     <div className="sidebar fixed lg:relative z-40 lg:z-auto h-full">
       <style>{`
         .sidebar {
@@ -409,6 +469,20 @@ const Sidebar: React.FC<SidebarProps> = ({
           box-shadow: 0 8px 25px rgba(42, 38, 84, 0.6);
           background: linear-gradient(135deg, rgba(42, 38, 84, 1) 0%, rgba(54, 48, 104, 1) 100%);
         }
+        
+        .btn-danger {
+          background: linear-gradient(135deg, rgba(220, 38, 38, 0.9) 0%, rgba(185, 28, 28, 0.9) 100%);
+          color: white;
+          box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .btn-danger:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(220, 38, 38, 0.6);
+          background: linear-gradient(135deg, rgba(220, 38, 38, 1) 0%, rgba(185, 28, 28, 1) 100%);
+        }
       `}</style>
       
       {/* Header */}
@@ -424,10 +498,10 @@ const Sidebar: React.FC<SidebarProps> = ({
       <div className="form-section">
         <h3>Serviços</h3>
         
-        {/* Roçagem de Áreas Públicas */}
+        {/* LIMPEZA URBANA Category */}
         <div className="mb-4">
           <button
-            onClick={() => toggleSection('rocagem')}
+            onClick={() => toggleSection('limpeza_urbana')}
             className="w-full flex items-center justify-between text-white text-sm font-semibold mb-2 p-2 rounded hover:bg-white/10 transition-all duration-300 hover:transform hover:translate-x-1 hover:shadow-lg group relative overflow-hidden"
           >
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -435,59 +509,65 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <div className="flex items-center relative z-10">
               <Leaf className="mr-2 w-4 h-4 group-hover:scale-110 transition-transform duration-200" />
-              <span className="group-hover:text-white/90 transition-colors duration-200">Roçagem de Áreas Públicas</span>
+              <span className="group-hover:text-white/90 transition-colors duration-200">LIMPEZA URBANA</span>
             </div>
-            {expandedSections.rocagem ? <ChevronDown className="w-4 h-4 group-hover:scale-110 transition-transform duration-200 relative z-10" /> : <ChevronRight className="w-4 h-4 group-hover:scale-110 transition-transform duration-200 relative z-10" />}
+            {expandedSections.limpeza_urbana ? <ChevronDown className="w-4 h-4 group-hover:scale-110 transition-transform duration-200 relative z-10" /> : <ChevronRight className="w-4 h-4 group-hover:scale-110 transition-transform duration-200 relative z-10" />}
           </button>
-          {expandedSections.rocagem && (
+          {expandedSections.limpeza_urbana && (
             <div className="space-y-2 ml-6">
-              <Checkbox label="Roçagem (Lote 1)" checked={visibleLayers.rocagemLote1} onChange={() => onLayerToggle('rocagemLote1')} />
-              <Checkbox label="Roçagem (Lote 2)" checked={visibleLayers.rocagemLote2} onChange={() => onLayerToggle('rocagemLote2')} />
+              {serviceCategories.limpeza_urbana.services.map((service) => {
+                const IconComponent = service.icon;
+                return (
+                  <div key={service.id} className="flex items-center space-x-2 p-2 rounded hover:bg-white/5 transition-all duration-300 hover:transform hover:translate-x-1 group cursor-pointer relative overflow-hidden">
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/8 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                    </div>
+                    <IconComponent className="w-6 h-6 text-green-400 group-hover:scale-110 transition-transform duration-200 relative z-10" />
+                    <Checkbox 
+                      label={service.name} 
+                      checked={visibleLayers[service.id] || false} 
+                      onChange={() => onLayerToggle(service.id)} 
+                    />
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* Jardins */}
+        {/* RESÍDUOS Category */}
         <div className="mb-4">
           <button
-            onClick={() => toggleSection('jardins')}
+            onClick={() => toggleSection('residuos')}
             className="w-full flex items-center justify-between text-white text-sm font-semibold mb-2 p-2 rounded hover:bg-white/10 transition-all duration-300 hover:transform hover:translate-x-1 hover:shadow-lg group relative overflow-hidden"
           >
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/15 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-600"></div>
             </div>
             <div className="flex items-center relative z-10">
-              <Flower2 className="mr-2 w-4 h-4 group-hover:scale-110 transition-transform duration-200" />
-              <span className="group-hover:text-white/90 transition-colors duration-200">Jardins</span>
+              <Trash2 className="mr-2 w-4 h-4 group-hover:scale-110 transition-transform duration-200" />
+              <span className="group-hover:text-white/90 transition-colors duration-200">RESÍDUOS</span>
             </div>
-            {expandedSections.jardins ? <ChevronDown className="w-4 h-4 group-hover:scale-110 transition-transform duration-200 relative z-10" /> : <ChevronRight className="w-4 h-4 group-hover:scale-110 transition-transform duration-200 relative z-10" />}
+            {expandedSections.residuos ? <ChevronDown className="w-4 h-4 group-hover:scale-110 transition-transform duration-200 relative z-10" /> : <ChevronRight className="w-4 h-4 group-hover:scale-110 transition-transform duration-200 relative z-10" />}
           </button>
-          {expandedSections.jardins && (
+          {expandedSections.residuos && (
             <div className="space-y-2 ml-6">
-              <Checkbox label="Manutenção de Jardins" checked={visibleLayers.jardins} onChange={() => onLayerToggle('jardins')} />
-            </div>
-          )}
-        </div>
-
-        {/* Outros Serviços */}
-        <div className="mb-4">
-          <button
-            onClick={() => toggleSection('outros')}
-            className="w-full flex items-center justify-between text-white text-sm font-semibold mb-2 p-2 rounded hover:bg-white/10 transition-all duration-300 hover:transform hover:translate-x-1 hover:shadow-lg group relative overflow-hidden"
-          >
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/15 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-600"></div>
-            </div>
-            <div className="flex items-center relative z-10">
-              <Building2 className="mr-2 w-4 h-4 group-hover:scale-110 transition-transform duration-200" />
-              <span className="group-hover:text-white/90 transition-colors duration-200">Outros Serviços</span>
-            </div>
-            {expandedSections.outros ? <ChevronDown className="w-4 h-4 group-hover:scale-110 transition-transform duration-200 relative z-10" /> : <ChevronRight className="w-4 h-4 group-hover:scale-110 transition-transform duration-200 relative z-10" />}
-          </button>
-          {expandedSections.outros && (
-            <div className="space-y-2 ml-6">
-              <Checkbox label="Descarte Irregular" checked={visibleLayers.descarteIrregular} onChange={() => onLayerToggle('descarteIrregular')} />
-              <Checkbox label="Áreas Adotadas" checked={visibleLayers.areaAdotada} onChange={() => onLayerToggle('areaAdotada')} />
+              {serviceCategories.residuos.services.map((service) => {
+                const IconComponent = service.icon;
+                return (
+                  <div key={service.id} className="flex items-center space-x-2 p-2 rounded hover:bg-white/5 transition-all duration-300 hover:transform hover:translate-x-1 group cursor-pointer relative overflow-hidden">
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/8 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                    </div>
+                    <IconComponent className="w-6 h-6 text-blue-400 group-hover:scale-110 transition-transform duration-200 relative z-10" />
+                    <Checkbox 
+                      label={service.name} 
+                      checked={visibleLayers[service.id] || false} 
+                      onChange={() => onLayerToggle(service.id)} 
+                    />
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -576,6 +656,20 @@ const Sidebar: React.FC<SidebarProps> = ({
             <Edit3 className="mr-2 w-4 h-4" />
             Desenhar Área
           </button>
+          <button 
+            onClick={() => setIsAreaRegistrationOpen(true)}
+            className="modern-btn btn-primary"
+          >
+            <Plus className="mr-2 w-4 h-4" />
+            Cadastrar Área
+          </button>
+          <button 
+            onClick={handleClearAreas}
+            className="modern-btn btn-danger"
+          >
+            <DatabaseIcon className="mr-2 w-4 h-4" />
+            Limpar Dados
+          </button>
         </div>
       </div>
 
@@ -629,8 +723,8 @@ const Sidebar: React.FC<SidebarProps> = ({
       <div className="form-section">
         <h3>Resumo dos Serviços</h3>
         <div className="space-y-2 text-sm">
-          {Object.entries(database.services).map(([serviceId, service]) => (
-            <div key={serviceId} className="flex justify-between text-white">
+          {database.services.map((service: any) => (
+            <div key={service.id} className="flex justify-between text-white">
               <span>{service.name}:</span>
               <span>{service.areas.length} áreas</span>
             </div>
@@ -638,6 +732,17 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
     </div>
+    
+    {/* Area Registration Modal */}
+    <AreaRegistration
+      isOpen={isAreaRegistrationOpen}
+      onClose={() => setIsAreaRegistrationOpen(false)}
+      onAreaCreated={() => {
+        // Aqui você pode adicionar lógica para atualizar a lista de áreas
+        console.log('Nova área cadastrada!');
+      }}
+    />
+  </>
   );
 };
 

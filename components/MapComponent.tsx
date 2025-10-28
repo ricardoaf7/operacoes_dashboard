@@ -156,18 +156,19 @@ const MapComponent: React.FC<MapComponentProps> = ({
     };
 
     return (
-        <MapContainer center={center} zoom={13} style={{ height: '100%', width: '100%' }}>
-            {/* Remove the default TileLayer since LayerControl will handle all layers */}
-            <MapRefHandler />
-            <LayerControl map={mapRef.current} />
-            <DrawingTools 
-              map={mapRef.current} 
-              onPolygonCreated={(polygon) => {
-                console.log('Polígono criado:', polygon);
-              }}
-            />
+        <div style={{ height: '100%', width: '100%', position: 'relative' }}>
+            <MapContainer center={center} zoom={13} style={{ height: '100%', width: '100%' }}>
+                {/* Remove the default TileLayer since LayerControl will handle all layers */}
+                <MapRefHandler />
+                <LayerControl map={mapRef.current} />
+                <DrawingTools 
+                  map={mapRef.current} 
+                  onPolygonCreated={(polygon) => {
+                    console.log('Polígono criado:', polygon);
+                  }}
+                />
 
-            <MapEventsHandler onMapClick={onMapClick} addMode={addMode} />
+                <MapEventsHandler onMapClick={onMapClick} addMode={addMode} />
 
             {/* Services */}
             {db.services.map(service => (
@@ -283,6 +284,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
                 );
             })}
         </MapContainer>
+        </div>
     );
 };
 
