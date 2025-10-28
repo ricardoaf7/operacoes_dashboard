@@ -27,8 +27,8 @@ const AddPointModal: React.FC<AddPointModalProps> = ({ serviceId, onClose, onAdd
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[1100]" onClick={onClose}>
-            <div className="bg-gray-800 text-white rounded-lg shadow-xl w-full max-w-md p-6 m-4" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-[1100]" onClick={onClose}>
+            <div className="bg-gray-800/90 backdrop-blur-md text-white rounded-lg shadow-xl w-full max-w-md p-6 m-4 border border-gray-600/30" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-start mb-4">
                     <h2 className="text-xl font-bold text-blue-400">{serviceTitles[serviceId] || 'Adicionar Novo Ponto'}</h2>
                     <button onClick={onClose} className="text-gray-400 hover:text-white transition text-2xl">&times;</button>

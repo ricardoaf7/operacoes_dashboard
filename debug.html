@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Debug - Dashboard</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #1f2937;
+            color: white;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #374151;
+            border-radius: 8px;
+        }
+        .success { border-color: #10b981; }
+        .error { border-color: #ef4444; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Teste de Debug - Dashboard</h1>
+    
+    <div class="test-section success">
+        <h2>✅ HTML Básico</h2>
+        <p>Se você está vendo isso, o HTML básico está funcionando.</p>
+    </div>
+
+    <div class="test-section" id="js-test">
+        <h2>⏳ JavaScript</h2>
+        <p id="js-result">Testando JavaScript...</p>
+    </div>
+
+    <div class="test-section" id="react-test">
+        <h2>⏳ React</h2>
+        <div id="react-root">Testando React...</div>
+    </div>
+
+    <div class="test-section" id="env-test">
+        <h2>⏳ Variáveis de Ambiente</h2>
+        <div id="env-result">Testando variáveis de ambiente...</div>
+    </div>
+
+    <div class="test-section" id="supabase-test">
+        <h2>⏳ Supabase</h2>
+        <div id="supabase-result">Testando conexão Supabase...</div>
+    </div>
+
+    <script>
+        // Teste JavaScript básico
+        document.getElementById('js-result').textContent = '✅ JavaScript funcionando!';
+        document.getElementById('js-test').className = 'test-section success';
+
+        // Teste das variáveis de ambiente
+        const envVars = {
+            VITE_SUPABASE_URL: import.meta?.env?.VITE_SUPABASE_URL || 'Não encontrada',
+            VITE_SUPABASE_ANON_KEY: import.meta?.env?.VITE_SUPABASE_ANON_KEY ? 'Configurada' : 'Não encontrada'
+        };
+        
+        document.getElementById('env-result').innerHTML = `
+            <p><strong>VITE_SUPABASE_URL:</strong> ${envVars.VITE_SUPABASE_URL}</p>
+            <p><strong>VITE_SUPABASE_ANON_KEY:</strong> ${envVars.VITE_SUPABASE_ANON_KEY}</p>
+        `;
+        document.getElementById('env-test').className = 'test-section ' + 
+            (envVars.VITE_SUPABASE_URL !== 'Não encontrada' ? 'success' : 'error');
+    </script>
+
+    <script type="text/babel">
+        // Teste React
+        function TestComponent() {
+            const [count, setCount] = React.useState(0);
+            
+            return React.createElement('div', null,
+                React.createElement('p', null, '✅ React funcionando!'),
+                React.createElement('button', {
+                    onClick: () => setCount(count + 1),
+                    style: { 
+                        padding: '8px 16px', 
+                        backgroundColor: '#3b82f6', 
+                        color: 'white', 
+                        border: 'none', 
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                    }
+                }, `Cliques: ${count}`)
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('react-root'));
+        root.render(React.createElement(TestComponent));
+        document.getElementById('react-test').className = 'test-section success';
+    </script>
+
+    <script type="module">
+        // Teste Supabase
+        try {
+            // Simular importação do Supabase
+            const supabaseUrl = 'https://rwfolmphjmuyqocetitv.supabase.co';
+            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3Zm9sbXBoam11eXFvY2V0aXR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2NjA2MTcsImV4cCI6MjA3NzIzNjYxN30.O1ll_msQWobgghQAg0TA5s4Xl7ZrOJNYKOXJ0zDS8B8';
+            
+            if (supabaseUrl && supabaseKey) {
+                document.getElementById('supabase-result').innerHTML = `
+                    <p>✅ Credenciais Supabase encontradas</p>
+                    <p><strong>URL:</strong> ${supabaseUrl}</p>
+                    <p><strong>Key:</strong> ${supabaseKey.substring(0, 20)}...</p>
+                `;
+                document.getElementById('supabase-test').className = 'test-section success';
+            } else {
+                throw new Error('Credenciais não encontradas');
+            }
+        } catch (error) {
+            document.getElementById('supabase-result').innerHTML = `
+                <p>❌ Erro no Supabase: ${error.message}</p>
+            `;
+            document.getElementById('supabase-test').className = 'test-section error';
+        }
+    </script>
+</body>
+</html>

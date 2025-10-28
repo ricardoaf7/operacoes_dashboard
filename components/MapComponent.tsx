@@ -1,20 +1,84 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Polygon, Tooltip, useMapEvents } from 'react-leaflet';
-import L, { LatLng, LatLngTuple } from 'leaflet';
+import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import DrawingTools from './DrawingTools';
+
+// Import marker icons
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
 import { Database, Area, ServiceId, TeamType } from '../types';
 import { TeamIcons, GardenIcon, IrregularDiscardIcon, AdoptedAreaIcon } from './icons';
+
+// Layer Control Component
+const LayerControl: React.FC<{ map: L.Map | null }> = ({ map }) => {
+  const [currentLayer, setCurrentLayer] = useState<'osm' | 'satellite' | 'hybrid'>('osm');
+
+  useEffect(() => {
+    if (!map) return;
+
+    // Define tile layers
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19
+    });
+
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: '© Esri, Maxar, Earthstar Geographics',
+      maxZoom: 19
+    });
+
+    const streetLabels = L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/toner-labels/{z}/{x}/{y}{r}.png', {
+      attribution: '© Stamen Design, © OpenStreetMap contributors',
+      maxZoom: 19
+    });
+
+    // Remove the default TileLayer since LayerControl will handle it
+    // Set initial layer
+    // osmLayer.addTo(map); // This will be handled by LayerControl
+
+    // Create layer control
+    const baseLayers = {
+      "🗺️ Mapa Padrão": osmLayer,
+      "🛰️ Satélite": satelliteLayer,
+      "🌍 Híbrido": L.layerGroup([satelliteLayer, streetLabels])
+    };
+
+    const layerControl = L.control.layers(baseLayers, null, {
+      position: 'topright',
+      collapsed: false
+    }).addTo(map);
+
+    // Set default layer
+    osmLayer.addTo(map);
+
+    return () => {
+      map.removeControl(layerControl);
+    };
+  }, [map]);
+
+  return null;
+};
 
 // Fix: Apply a global patch to Leaflet's default icon paths.
 // This is the most robust solution for ESM/CDN environments, ensuring that any
 // internal call to `new L.Icon.Default()` within react-leaflet uses the correct image paths.
 delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
+
+// Create a proper default icon configuration
+const defaultIcon = L.icon({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
 });
+
+L.Marker.prototype.options.icon = defaultIcon;
 
 
 // Defined AddMode locally to avoid circular dependency with App.tsx
@@ -78,12 +142,29 @@ const MapComponent: React.FC<MapComponentProps> = ({
     onMapClick,
 }) => {
     const center: LatLngTuple = [-23.31, -51.16]; // Center of Londrina, PR
+    const mapRef = useRef<L.Map | null>(null);
+
+    // Component to get map reference
+    const MapRefHandler: React.FC = () => {
+        const map = useMapEvents({});
+        
+        useEffect(() => {
+            mapRef.current = map;
+        }, [map]);
+        
+        return null;
+    };
 
     return (
-        <MapContainer center={center} zoom={13} style={{ height: '100%', width: '100%', backgroundColor: '#1a202c' }}>
-            <TileLayer
-                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        <MapContainer center={center} zoom={13} style={{ height: '100%', width: '100%' }}>
+            {/* Remove the default TileLayer since LayerControl will handle all layers */}
+            <MapRefHandler />
+            <LayerControl map={mapRef.current} />
+            <DrawingTools 
+              map={mapRef.current} 
+              onPolygonCreated={(polygon) => {
+                console.log('Polígono criado:', polygon);
+              }}
             />
 
             <MapEventsHandler onMapClick={onMapClick} addMode={addMode} />
@@ -143,7 +224,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
                             <Marker
                                 key={`${service.id}-${area.id}`}
                                 position={position}
-                                icon={icon}
+                                icon={icon || defaultIcon}
                                 draggable={true}
                                 ref={markerRef}
                                 eventHandlers={{
@@ -188,7 +269,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
                     <Marker
                         key={`team-${team.id}`}
                         position={[team.location.lat, team.location.lng]}
-                        icon={icon}
+                        icon={icon || defaultIcon}
                     >
                         <Tooltip>
                             <b>Equipe {team.id} - {team.type}</b><br />

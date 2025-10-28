@@ -1,11 +1,12 @@
 import React, { useState, useCallback } from 'react';
-import { Area, ServiceId } from './types';
-import useAppData from './hooks/useAppData';
-import Sidebar from './components/Sidebar';
+import { LatLng } from 'leaflet';
 import MapComponent from './components/MapComponent';
+import Sidebar from './components/Sidebar';
 import AreaModal from './components/AreaModal';
 import AddPointModal from './components/AddPointModal';
-import { LatLng } from 'leaflet';
+import ErrorBoundary from './components/ErrorBoundary';
+import useAppData from './hooks/useAppData';
+import { Area, ServiceId } from './types';
 
 export type AddMode = ServiceId | null;
 
@@ -80,55 +81,81 @@ const App: React.FC = () => {
         setAddMode(null);
     }, [addArea, newPointCoords]);
 
+    // Show loading state if data is not ready
+    if (!db || !appConfig) {
+        return (
+            <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                    <p>Carregando Dashboard...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="flex h-screen bg-gray-900 text-white font-sans">
-            <Sidebar
-                isOpen={isSidebarOpen}
-                toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-                appConfig={appConfig}
-                onRateChange={updateMowingProductionRate}
-                visibleLayers={visibleLayers}
-                onLayerToggle={handleLayerToggle}
-                services={db.services}
-                setAddMode={setAddMode}
-            />
-            <main className="flex-1 h-screen relative">
-                <button
-                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                    className="absolute top-4 left-4 z-[1000] bg-gray-800 p-2 rounded-md hover:bg-gray-700 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
-                    </svg>
-                </button>
-                <MapComponent
-                    db={db}
-                    visibleLayers={visibleLayers}
-                    onAreaSelect={handleAreaSelect}
-                    onUpdatePolygon={handleUpdatePolygon}
-                    onAreaLocationUpdate={handleUpdateAreaLocation}
-                    addMode={addMode}
-                    onMapClick={handleMapClick}
-                />
-            </main>
-            {selectedArea && (
-                <AreaModal
-                    area={selectedArea.area}
-                    serviceId={selectedArea.serviceId}
-                    teams={db.teams}
-                    onClose={handleCloseModal}
-                    onUpdateStatus={handleUpdateAreaStatus}
-                    onAssignTeam={handleAssignTeam}
-                />
-            )}
-            {newPointCoords && addMode && (
-                <AddPointModal
-                    serviceId={addMode}
-                    onClose={() => { setNewPointCoords(null); setAddMode(null); }}
-                    onAddArea={handleAddArea}
-                />
-            )}
-        </div>
+        <ErrorBoundary>
+            <div className="flex h-screen text-gray-900 font-sans">
+                {/* Sidebar Toggle Button (when collapsed) */}
+                {!isSidebarOpen && (
+                  <button 
+                    onClick={() => setIsSidebarOpen(true)}
+                    className="fixed top-4 left-4 z-[9999] bg-gradient-to-r from-slate-700 to-slate-800 backdrop-blur-sm text-white px-4 py-2 rounded-lg shadow-lg hover:from-slate-600 hover:to-slate-700 hover:shadow-xl transition-all duration-300 border border-slate-500/30 relative overflow-hidden group"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(30, 28, 62, 0.95) 0%, rgba(42, 38, 84, 0.95) 100%)'
+                    }}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-600 ease-out"></div>
+                    <span className="relative z-10">→ Mostrar Painel</span>
+                  </button>
+                )}
+                {isSidebarOpen && (
+                  <Sidebar
+                      database={db}
+                      isOpen={isSidebarOpen}
+                      onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+                      onAreaClick={(areaId, serviceId) => {
+                          console.log(`Area clicked: ${areaId} from service: ${serviceId}`);
+                      }}
+                      visibleLayers={visibleLayers}
+                      onLayerToggle={handleLayerToggle}
+                  />
+                )}
+                <main className="flex-1 h-screen relative">
+                    <ErrorBoundary>
+                        <MapComponent
+                            db={db}
+                            visibleLayers={visibleLayers}
+                            onAreaSelect={handleAreaSelect}
+                            onUpdatePolygon={handleUpdatePolygon}
+                            onAreaLocationUpdate={handleUpdateAreaLocation}
+                            addMode={addMode}
+                            onMapClick={handleMapClick}
+                        />
+                    </ErrorBoundary>
+                </main>
+                {selectedArea && (
+                    <AreaModal
+                        area={selectedArea.area}
+                        serviceId={selectedArea.serviceId}
+                        teams={db.teams}
+                        onClose={handleCloseModal}
+                        onUpdateStatus={handleUpdateAreaStatus}
+                        onAssignTeam={handleAssignTeam}
+                    />
+                )}
+                {newPointCoords && addMode && (
+                    <AddPointModal
+                        serviceId={addMode}
+                        onClose={() => {
+                            setNewPointCoords(null);
+                            setAddMode(null);
+                        }}
+                        onAdd={handleAddArea}
+                    />
+                )}
+            </div>
+        </ErrorBoundary>
     );
 };
 
