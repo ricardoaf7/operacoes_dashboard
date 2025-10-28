@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Leaf, 
   Flower2, 
@@ -9,7 +9,8 @@ import {
   Circle,
   Calculator,
   Download,
-  Edit3
+  Edit3,
+  Upload
 } from 'lucide-react';
 import { Database } from '../types';
 
@@ -20,6 +21,7 @@ interface SidebarProps {
   onAreaClick: (areaId: string, serviceId: string) => void;
   isOpen: boolean;
   onToggle: () => void;
+  onCsvImport?: (areas: any[]) => void;
 }
 
 interface CheckboxProps {
@@ -49,15 +51,20 @@ const Sidebar: React.FC<SidebarProps> = ({
   onLayerToggle, 
   onAreaClick,
   isOpen,
-  onToggle
+  onToggle,
+  onCsvImport
 }) => {
   const [expandedSections, setExpandedSections] = useState({
-    rocagem: true,
-    jardins: true,
-    outros: true,
-    equipes: true,
-    status: true
+    rocagem: false,
+    jardins: false,
+    outros: false,
+    equipes: false,
+    status: false,
+    importar: false
   });
+
+  const [importStatus, setImportStatus] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections(prev => ({
@@ -65,8 +72,136 @@ const Sidebar: React.FC<SidebarProps> = ({
       [section]: !prev[section]
     }));
   };
+
+  const processCSVFile = (file: File) => {
+    const reader = new FileReader();
+    
+    setImportStatus('Processando arquivo...');
+    
+    reader.onload = function(e) {
+      try {
+        const csv = e.target?.result as string;
+        
+        if (!csv || csv.trim() === '') {
+          throw new Error('Arquivo CSV está vazio');
+        }
+        
+        // Detecta o separador (vírgula, ponto e vírgula, ou tab)
+        let separator = ',';
+        if (csv.includes(';') && csv.split(';').length > csv.split(',').length) {
+          separator = ';';
+        } else if (csv.includes('\t')) {
+          separator = '\t';
+        }
+        
+        const lines = csv.split('\n').filter(line => line.trim() !== '');
+        const importedAreas = [];
+        
+        // Pula o cabeçalho (primeira linha)
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (line) {
+            const columns = line.split(separator).map(col => col.trim().replace(/"/g, ''));
+            
+            // Flexibilidade no número de colunas - mínimo 3 (ID, endereço, coordenadas)
+            if (columns.length >= 3) {
+              // Tenta encontrar coordenadas nas colunas
+              let lat = null, lng = null;
+              
+              // Procura por coordenadas válidas nas colunas
+              for (let j = 0; j < columns.length; j++) {
+                const val = parseFloat(columns[j]);
+                if (!isNaN(val)) {
+                  // Latitude típica do Brasil: -35 a 5
+                  if (val >= -35 && val <= 5 && lat === null) {
+                    lat = val;
+                  }
+                  // Longitude típica do Brasil: -75 a -30
+                  else if (val >= -75 && val <= -30 && lng === null) {
+                    lng = val;
+                  }
+                }
+              }
+              
+              // Se não encontrou coordenadas válidas, usa coordenadas padrão de Londrina
+              if (lat === null || lng === null) {
+                lat = -23.31 + (Math.random() - 0.5) * 0.1; // Pequena variação
+                lng = -51.16 + (Math.random() - 0.5) * 0.1;
+              }
+              
+              const area = {
+                id: columns[0] || `imported_${i}`,
+                ordem: i,
+                tipo: columns[1] || 'area publica',
+                endereco: columns[2] || 'Endereço não informado',
+                bairro: columns[3] || 'Bairro não informado',
+                metragem_m2: parseFloat(columns[4]) || 1000,
+                lat: lat,
+                lng: lng,
+                lote: 1,
+                status: 'Pendente',
+                history: [],
+                polygon: null,
+                scheduledDate: null,
+                imported: true
+              };
+              
+              importedAreas.push(area);
+            }
+          }
+        }
+        
+        if (importedAreas.length === 0) {
+          throw new Error('Nenhuma área válida encontrada no arquivo');
+        }
+        
+        // Chama a função de callback para processar as áreas importadas
+        if (onCsvImport) {
+          onCsvImport(importedAreas);
+        }
+        
+        setImportStatus(`✅ ${importedAreas.length} áreas importadas com sucesso!`);
+        
+        // Limpa o status após 3 segundos
+        setTimeout(() => setImportStatus(''), 3000);
+        
+        // Limpa o status após 3 segundos
+        setTimeout(() => setImportStatus(''), 3000);
+        
+      } catch (error) {
+        console.error('Erro ao processar CSV:', error);
+        setImportStatus(`❌ Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+        
+        // Limpa o status de erro após 5 segundos
+        setTimeout(() => setImportStatus(''), 5000);
+      }
+    };
+    
+    reader.onerror = function(error) {
+      console.error('Erro ao ler arquivo:', error);
+      setImportStatus('❌ Erro ao ler o arquivo');
+      setTimeout(() => setImportStatus(''), 5000);
+    };
+    
+    reader.readAsText(file, 'UTF-8');
+  };
+
+  const handleFileSelect = () => {
+    const file = fileInputRef.current?.files?.[0];
+    if (file) {
+      if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+        processCSVFile(file);
+      } else {
+        setImportStatus('❌ Por favor, selecione um arquivo CSV válido');
+        setTimeout(() => setImportStatus(''), 3000);
+      }
+    } else {
+      setImportStatus('⚠️ Por favor, selecione um arquivo CSV');
+      setTimeout(() => setImportStatus(''), 3000);
+    }
+  };
   return (
-    <div className="sidebar fixed lg:relative z-40 lg:z-auto w-[26rem] h-full">
+    <div className="sidebar fixed lg:relative z-40 lg:z-auto h-full">
       <style>{`
         .sidebar {
           height: 100vh;
@@ -74,7 +209,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           overflow-y: auto;
           background: linear-gradient(135deg, rgba(30, 28, 62, 0.85) 0%, rgba(42, 38, 84, 0.85) 50%, rgba(30, 28, 62, 0.85) 100%);
           backdrop-filter: blur(20px);
-          border-right: 2px solid rgba(255, 255, 255, 0.15);
           box-shadow: 4px 0 25px rgba(0, 0, 0, 0.4);
           flex-shrink: 0;
           scrollbar-width: thin;
@@ -108,7 +242,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         .sidebar-header {
           background: linear-gradient(135deg, rgba(30, 28, 62, 0.75) 0%, rgba(42, 38, 84, 0.75) 100%);
           backdrop-filter: blur(25px);
-          border-bottom: 2px solid rgba(255, 255, 255, 0.15);
           padding: 1.5rem;
           margin-bottom: 1rem;
           box-shadow: 0 2px 15px rgba(0, 0, 0, 0.3);
@@ -444,6 +577,52 @@ const Sidebar: React.FC<SidebarProps> = ({
             Desenhar Área
           </button>
         </div>
+      </div>
+
+      {/* Import CSV Section */}
+      <div className="form-section">
+        <button
+          onClick={() => toggleSection('importar')}
+          className="w-full flex items-center justify-between text-white text-sm font-semibold mb-2 p-2 rounded hover:bg-white/10 transition-all duration-300 hover:transform hover:translate-x-1 hover:shadow-lg group relative overflow-hidden"
+        >
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/15 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-600"></div>
+          </div>
+          <div className="flex items-center relative z-10">
+            <Upload className="mr-2 w-4 h-4 group-hover:scale-110 transition-transform duration-200" />
+            <span className="group-hover:text-white/90 transition-colors duration-200">Importar Dados</span>
+          </div>
+          {expandedSections.importar ? <ChevronDown className="w-4 h-4 group-hover:scale-110 transition-transform duration-200 relative z-10" /> : <ChevronRight className="w-4 h-4 group-hover:scale-110 transition-transform duration-200 relative z-10" />}
+        </button>
+        {expandedSections.importar && (
+          <div className="space-y-3 ml-6">
+            <div className="space-y-2">
+              <label className="block text-sm text-white/80">Arquivo CSV:</label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                className="w-full text-sm text-white bg-white/10 border border-white/30 rounded-lg p-2 file:mr-4 file:py-1 file:px-2 file:rounded file:border-0 file:text-sm file:font-medium file:bg-white/20 file:text-white hover:file:bg-white/30 transition-all duration-200"
+              />
+              <button
+                onClick={handleFileSelect}
+                className="modern-btn btn-primary w-full"
+              >
+                <Upload className="mr-2 w-4 h-4" />
+                Importar CSV
+              </button>
+              {importStatus && (
+                <div className={`text-sm p-2 rounded ${
+                  importStatus.includes('✅') ? 'text-green-400 bg-green-400/10' :
+                  importStatus.includes('❌') ? 'text-red-400 bg-red-400/10' :
+                  'text-yellow-400 bg-yellow-400/10'
+                }`}>
+                  {importStatus}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Services Summary */}

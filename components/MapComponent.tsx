@@ -191,6 +191,9 @@ const MapComponent: React.FC<MapComponentProps> = ({
                             case 'areaAdotada':
                                 if (visibleLayers.areaAdotada) { isVisible = true; icon = AdoptedAreaIcon; }
                                 break;
+                            case 'imported':
+                                if (visibleLayers.imported) { isVisible = true; }
+                                break;
                         }
                         
                         if (!isVisible) return null;

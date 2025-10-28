@@ -6,6 +6,7 @@ import AreaModal from './components/AreaModal';
 import AddPointModal from './components/AddPointModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import useAppData from './hooks/useAppData';
+import { insertCsvData } from './lib/supabase';
 import { Area, ServiceId } from './types';
 
 export type AddMode = ServiceId | null;
@@ -14,6 +15,8 @@ const App: React.FC = () => {
     const {
         db,
         appConfig,
+        isLoading,
+        refreshData,
         updateMowingProductionRate,
         updateAreaStatus,
         assignTeamToArea,
@@ -29,6 +32,7 @@ const App: React.FC = () => {
         jardins: true,
         descarteIrregular: true,
         areaAdotada: true,
+        imported: true, // Add imported areas layer
         teamsGiroZero: true,
         teamsAcabamento: true,
         teamsColeta: true,
@@ -81,8 +85,21 @@ const App: React.FC = () => {
         setAddMode(null);
     }, [addArea, newPointCoords]);
 
+    const handleCsvImport = useCallback(async (data: any[]) => {
+        console.log('CSV data imported:', data);
+        try {
+            const insertedData = await insertCsvData(data);
+            console.log('Data successfully inserted into Supabase:', insertedData);
+            // Refresh data to show imported areas on map
+            await refreshData();
+        } catch (error) {
+            console.error('Failed to insert CSV data into Supabase:', error);
+            // Handle error - could show an error message to user
+        }
+    }, [refreshData]);
+
     // Show loading state if data is not ready
-    if (!db || !appConfig) {
+    if (!db || !appConfig || isLoading) {
         return (
             <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
                 <div className="text-center">
@@ -100,13 +117,14 @@ const App: React.FC = () => {
                 {!isSidebarOpen && (
                   <button 
                     onClick={() => setIsSidebarOpen(true)}
-                    className="fixed top-4 left-4 z-[9999] bg-gradient-to-r from-slate-700 to-slate-800 backdrop-blur-sm text-white px-4 py-2 rounded-lg shadow-lg hover:from-slate-600 hover:to-slate-700 hover:shadow-xl transition-all duration-300 border border-slate-500/30 relative overflow-hidden group"
+                    className="fixed top-4 left-4 z-[9999] bg-gradient-to-r from-slate-700 to-slate-800 backdrop-blur-sm text-white px-3 py-2 rounded-full shadow-lg hover:from-slate-600 hover:to-slate-700 hover:shadow-xl transition-all duration-300 border border-slate-500/30 relative overflow-hidden group w-12 h-12 flex items-center justify-center"
                     style={{
                       background: 'linear-gradient(135deg, rgba(30, 28, 62, 0.95) 0%, rgba(42, 38, 84, 0.95) 100%)'
                     }}
+                    title="Mostrar Painel"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-600 ease-out"></div>
-                    <span className="relative z-10">→ Mostrar Painel</span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-600 ease-out rounded-full"></div>
+                    <span className="relative z-10 text-lg">→</span>
                   </button>
                 )}
                 {isSidebarOpen && (
@@ -119,6 +137,7 @@ const App: React.FC = () => {
                       }}
                       visibleLayers={visibleLayers}
                       onLayerToggle={handleLayerToggle}
+                      onCsvImport={handleCsvImport}
                   />
                 )}
                 <main className="flex-1 h-screen relative">

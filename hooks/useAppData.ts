@@ -1,12 +1,70 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { db as initialDb, APP_CONFIG as initialAppConfig } from '../data';
 import { AppConfig, Database, ServiceId } from '../types';
 import { produce } from 'immer';
 import { LatLng } from 'leaflet';
+import { getAreas } from '../lib/supabase';
 
 const useAppData = () => {
     const [db, setDb] = useState<Database>(initialDb);
     const [appConfig, setAppConfig] = useState<AppConfig>(initialAppConfig);
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Function to load areas from Supabase and merge with existing data
+    const loadSupabaseData = useCallback(async () => {
+        try {
+            setIsLoading(true);
+            const supabaseAreas = await getAreas();
+            
+            if (supabaseAreas && supabaseAreas.length > 0) {
+                setDb(produce(draftDb => {
+                    // Find or create a service for imported areas
+                    let importedService = draftDb.services.find(s => s.id === 'imported');
+                    if (!importedService) {
+                        importedService = {
+                            id: 'imported' as ServiceId,
+                            name: 'Áreas Importadas',
+                            areas: []
+                        };
+                        draftDb.services.push(importedService);
+                    }
+
+                    // Convert Supabase areas to app format with unique IDs
+                    const convertedAreas = supabaseAreas.map((area, index) => ({
+                        id: area.id || `imported-${Date.now()}-${index}`, // Use Supabase ID directly (string) or generate unique fallback
+                        tipo: 'Importado',
+                        endereco: area.name || `Área ${index + 1}`,
+                        lat: area.coordinates[0]?.[0] || -23.3045,
+                        lng: area.coordinates[0]?.[1] || -51.1696,
+                        status: area.status === 'concluido' ? 'Concluído' : 
+                               area.status === 'executando' ? 'Em Execução' : 'Pendente',
+                        history: [],
+                        polygon: area.coordinates.length > 2 ? area.coordinates as [number, number][] : undefined,
+                        metragem_m2: area.area_size || 1000,
+                        notes: area.notes
+                    }));
+
+                    // Clear and replace imported areas to avoid duplicates
+                    importedService.areas = convertedAreas;
+                    
+                    console.log(`Loaded ${convertedAreas.length} areas from Supabase`);
+                }));
+            }
+        } catch (error) {
+            console.error('Error loading Supabase data:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    // Load Supabase data on component mount - with ref to prevent multiple calls
+    const hasLoadedRef = useRef(false);
+    useEffect(() => {
+        if (!hasLoadedRef.current) {
+            hasLoadedRef.current = true;
+            loadSupabaseData();
+        }
+    }, [loadSupabaseData]);
 
     const addWorkDays = (startDate: Date, days: number): Date => {
         let currentDate = new Date(startDate);
@@ -146,6 +204,8 @@ const useAppData = () => {
     return {
         db,
         appConfig,
+        isLoading,
+        refreshData: loadSupabaseData,
         updateMowingProductionRate,
         updateAreaStatus,
         assignTeamToArea,

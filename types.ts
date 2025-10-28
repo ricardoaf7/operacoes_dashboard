@@ -1,6 +1,6 @@
 import { LatLngTuple } from 'leaflet';
 
-export type ServiceId = 'rocagem' | 'jardins' | 'limpeza' | 'lagos' | 'coleta' | 'descarteIrregular' | 'areaAdotada';
+export type ServiceId = 'rocagem' | 'jardins' | 'limpeza' | 'lagos' | 'coleta' | 'descarteIrregular' | 'areaAdotada' | 'imported';
 
 export interface HistoryEntry {
     date: Date;
@@ -8,7 +8,7 @@ export interface HistoryEntry {
 }
 
 export interface Area {
-    id: number;
+    id: number | string;
     ordem?: number;
     tipo: string;
     endereco: string;
@@ -38,7 +38,7 @@ export interface Team {
     type: TeamType;
     lote: number | null;
     status: 'Idle' | 'Working';
-    currentAreaId: number | null;
+    currentAreaId: number | string | null;
     location: {
         lat: number;
         lng: number;
