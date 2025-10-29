@@ -1,52 +1,1395 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CMTU-LD - Dashboard Operacional</title>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Leaflet Draw CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    
     <style>
-        html, body, #root {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
+        :root {
+            --cmtu-primary: #1e1c3e;
+            --cmtu-primary-light: #2d2a54;
+            --cmtu-primary-dark: #151329;
+            --cmtu-secondary: #4f46e5;
+            --cmtu-accent: #06b6d4;
+            --cmtu-success: #10b981;
+            --cmtu-warning: #f59e0b;
+            --cmtu-error: #ef4444;
+            --cmtu-gray-50: #f8fafc;
+            --cmtu-gray-100: #f1f5f9;
+            --cmtu-gray-200: #e2e8f0;
+            --cmtu-gray-300: #cbd5e1;
+            --cmtu-gray-400: #94a3b8;
+            --cmtu-gray-500: #64748b;
+            --cmtu-gray-600: #475569;
+            --cmtu-gray-700: #334155;
+            --cmtu-gray-800: #1e293b;
+            --cmtu-gray-900: #0f172a;
         }
-        .leaflet-tooltip {
-            background-color: #2d3748; /* bg-gray-800 */
-            border: 1px solid #4a5568; /* border-gray-600 */
-            color: #e2e8f0; /* text-gray-200 */
-            box-shadow: 0 1px 3px rgba(0,0,0,0.5);
-            border-radius: 4px;
-            padding: 8px 12px;
-            font-family: sans-serif;
-            font-size: 0.875rem;
+
+        * {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .leaflet-tooltip-top:before,
-        .leaflet-tooltip-bottom:before,
-        .leaflet-tooltip-left:before,
-        .leaflet-tooltip-right:before {
-            border: none !important; /* Override leaflet default arrow */
+        
+        /* Estilos customizados */
+        .sidebar-transition {
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
+        
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200px 0; }
+            100% { background-position: calc(200px + 100%) 0; }
+        }
+
+        .shimmer {
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            background-size: 200px 100%;
+            animation: shimmer 2s infinite;
+        }
+
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .map-container {
+            height: 100vh;
+        }
+        
+        .sidebar {
+            width: 400px;
+            max-width: 90vw;
+            position: fixed !important;
+            left: 0 !important;
+            top: 0 !important;
+            height: 100vh !important;
+            z-index: 1000 !important;
+            transform: translateX(0) !important;
+            background: rgba(30, 28, 62, 0.95) !important;
+            backdrop-filter: blur(20px) !important;
+            border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+            overflow-y: auto !important;
+            color: white !important;
+        }
+        
+        .sidebar.collapsed {
+            transform: translateX(-100%) !important;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--cmtu-primary), var(--cmtu-secondary));
+            border: none;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(79, 70, 229, 0.6);
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .card:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .menu-toggle {
+            position: fixed;
+            top: 20px;
+            left: 420px;
+            width: 40px;
+            height: 40px;
+            background: rgba(30, 28, 62, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1001;
+            color: white;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .menu-toggle:hover {
+            background: rgba(30, 28, 62, 1);
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(30, 28, 62, 0.6);
+        }
+
+        .menu-toggle.collapsed {
+            left: 20px;
+        }
+
+        .status-critical { background: linear-gradient(135deg, var(--cmtu-error), #dc2626); }
+        .status-execution { background: linear-gradient(135deg, var(--cmtu-secondary), #6366f1); }
+        .status-today { background: linear-gradient(135deg, var(--cmtu-accent), #0891b2); }
+        .status-upcoming { background: linear-gradient(135deg, var(--cmtu-warning), #d97706); }
+        .status-completed { background: linear-gradient(135deg, var(--cmtu-success), #059669); }
+        .status-pending { background: linear-gradient(135deg, var(--cmtu-gray-500), var(--cmtu-gray-600)); }
+        
+        /* Estilos para o modal */
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        
+        /* Estilos para status das áreas */
+        .status-critico { color: #dc2626; }
+        .status-execucao { color: #16a34a; }
+        .status-hoje { color: #eab308; }
+        .status-proximos { color: #3b82f6; }
+        .status-concluido { color: #166534; }
+        .status-pendente { color: #6b7280; }
     </style>
 </head>
-<body>
-    <div id="root"></div>
-    <script type="importmap">
-    {
-      "imports": {
-        "react": "https://aistudiocdn.com/react@^19.2.0",
-        "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-        "react/": "https://aistudiocdn.com/react@^19.2.0/",
-        "leaflet": "https://aistudiocdn.com/leaflet@^1.9.4",
-        "immer": "https://aistudiocdn.com/immer@^10.2.0",
-        "react-leaflet": "https://aistudiocdn.com/react-leaflet@^5.0.0",
-        "leaflet/": "https://aistudiocdn.com/leaflet@^1.9.4/"
-      }
-    }
+<body class="bg-gray-100 font-sans">
+    <!-- Container principal -->
+    <div class="flex h-screen relative">
+        <!-- Sidebar -->
+        <div id="sidebar" class="sidebar sidebar-transition" style="position: fixed; left: 0; top: 0; width: 400px; height: 100vh; background: rgba(30, 28, 62, 0.95); backdrop-filter: blur(20px); z-index: 1000; transform: translateX(0); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); overflow-y: auto; color: white; border-right: 1px solid rgba(255, 255, 255, 0.1);">
+            <div class="p-6">
+                <!-- Cabeçalho -->
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg flex items-center justify-center">
+                            <i data-lucide="map-pin" class="w-5 h-5 text-white"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-xl font-bold text-white">CMTU Dashboard</h1>
+                            <p class="text-sm text-gray-300">Operações em Tempo Real</p>
+                        </div>
+                    </div>
+                    <button id="closeSidebar" class="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                        <i data-lucide="panel-left-close" class="w-5 h-5 text-gray-300 hover:text-white"></i>
+                    </button>
+                </div>
+                
+                <!-- Blocos de Serviços - Joias da Coroa -->
+                <div class="card mb-6">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <i data-lucide="layers" class="w-5 h-5 text-purple-400"></i>
+                        <h2 class="text-lg font-semibold text-white">Serviços</h2>
+                    </div>
+                    
+                    <!-- Bloco LIMPEZA URBANA -->
+                    <div class="service-block mb-3">
+                        <div class="service-block-header bg-gradient-to-r from-green-600/20 to-emerald-600/20 border border-green-500/30 rounded-lg p-3 cursor-pointer hover:from-green-600/30 hover:to-emerald-600/30 transition-all duration-200" onclick="toggleServiceBlock('limpezaUrbana')">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <i data-lucide="trees" class="w-5 h-5 text-green-400"></i>
+                                    <span class="text-sm font-semibold text-white">LIMPEZA URBANA</span>
+                                </div>
+                                <i data-lucide="chevron-down" id="limpezaUrbanaChevron" class="w-4 h-4 text-gray-400 transition-transform duration-200"></i>
+                            </div>
+                        </div>
+                        <div id="limpezaUrbanaServices" class="service-block-content hidden mt-2 space-y-2 pl-4">
+                            <div class="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
+                                <i data-lucide="scissors" class="w-4 h-4 text-green-400"></i>
+                                <span class="text-sm text-gray-200">Roçagem Áreas Públicas</span>
+                            </div>
+                            <div class="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
+                                <i data-lucide="flower" class="w-4 h-4 text-green-400"></i>
+                                <span class="text-sm text-gray-200">Jardins</span>
+                            </div>
+                            <div class="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
+                                <i data-lucide="map-pin" class="w-4 h-4 text-green-400"></i>
+                                <span class="text-sm text-gray-200">Boa Praça</span>
+                            </div>
+                            <div class="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
+                                <i data-lucide="waves" class="w-4 h-4 text-green-400"></i>
+                                <span class="text-sm text-gray-200">Manutenção Lagos</span>
+                            </div>
+                            <div class="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="broom" class="lucide lucide-broom w-4 h-4 text-green-400"><path d="M3 12h18l-9 9-9-9Z"></path><path d="M12 3v9"></path></svg>
+                                <span class="text-sm text-gray-200">Varrição</span>
+                            </div>
+                            <div class="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
+                                <i data-lucide="tree-pine" class="w-4 h-4 text-green-400"></i>
+                                <span class="text-sm text-gray-200">Podas</span>
+                            </div>
+                            <div class="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
+                                <i data-lucide="droplets" class="w-4 h-4 text-green-400"></i>
+                                <span class="text-sm text-gray-200">Chafariz</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Bloco RESÍDUOS -->
+                    <div class="service-block">
+                        <div class="service-block-header bg-gradient-to-r from-blue-600/20 to-cyan-600/20 border border-blue-500/30 rounded-lg p-3 cursor-pointer hover:from-blue-600/30 hover:to-cyan-600/30 transition-all duration-200" onclick="toggleServiceBlock('residuos')">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <i data-lucide="recycle" class="w-5 h-5 text-blue-400"></i>
+                                    <span class="text-sm font-semibold text-white">RESÍDUOS</span>
+                                </div>
+                                <i data-lucide="chevron-down" id="residuosChevron" class="w-4 h-4 text-gray-400 transition-transform duration-200"></i>
+                            </div>
+                        </div>
+                        <div id="residuosServices" class="service-block-content hidden mt-2 space-y-2 pl-4">
+                            <div class="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
+                                <i data-lucide="trash-2" class="w-4 h-4 text-blue-400"></i>
+                                <span class="text-sm text-gray-200">Coleta Orgânicos e Rejeitos</span>
+                            </div>
+                            <div class="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
+                                <i data-lucide="recycle" class="w-4 h-4 text-blue-400"></i>
+                                <span class="text-sm text-gray-200">Coleta Recicláveis</span>
+                            </div>
+                            <div class="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
+                                <i data-lucide="truck" class="w-4 h-4 text-blue-400"></i>
+                                <span class="text-sm text-gray-200">Coleta e Limpeza Especiais</span>
+                            </div>
+                            <div class="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="circle-dot" class="lucide lucide-circle-dot w-4 h-4 text-blue-400"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="1"></circle></svg>
+                                <span class="text-sm text-gray-200">Limpeza de Bocas de Lobo</span>
+                            </div>
+                            <div class="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
+                                <i data-lucide="package" class="w-4 h-4 text-blue-400"></i>
+                                <span class="text-sm text-gray-200">PEV's</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Estatísticas -->
+                <div class="card mb-6">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <i data-lucide="bar-chart-3" class="w-5 h-5 text-blue-400"></i>
+                        <h2 class="text-lg font-semibold text-white">Estatísticas</h2>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-white/5 rounded-lg p-3 text-center hover:bg-white/10 transition-colors">
+                            <div class="text-2xl font-bold text-blue-400" id="totalAreas">0</div>
+                            <div class="text-xs text-gray-300">Áreas Totais</div>
+                        </div>
+                        <div class="bg-white/5 rounded-lg p-3 text-center hover:bg-white/10 transition-colors">
+                            <div class="text-2xl font-bold text-green-400" id="activeTeams">0</div>
+                            <div class="text-xs text-gray-300">Equipes Ativas</div>
+                        </div>
+                        <div class="bg-white/5 rounded-lg p-3 text-center hover:bg-white/10 transition-colors">
+                            <div class="text-2xl font-bold text-yellow-400" id="pendingTasks">0</div>
+                            <div class="text-xs text-gray-300">Tarefas Pendentes</div>
+                        </div>
+                        <div class="bg-white/5 rounded-lg p-3 text-center hover:bg-white/10 transition-colors">
+                            <div class="text-2xl font-bold text-purple-400" id="completedTasks">0</div>
+                            <div class="text-xs text-gray-300">Concluídas</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Filtros de Status -->
+                <div class="card mb-6">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <i data-lucide="filter" class="w-5 h-5 text-emerald-400"></i>
+                        <h3 class="text-md font-semibold text-white">Filtros de Status</h3>
+                    </div>
+                    <div class="space-y-3">
+                        <label class="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
+                            <input type="checkbox" id="filterCritical" class="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500" checked>
+                            <div class="flex items-center space-x-2">
+                                <div class="w-3 h-3 bg-red-500 rounded pulse-animation"></div>
+                                <span class="text-sm text-gray-200">Crítico</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
+                            <input type="checkbox" id="filterExecution" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500" checked>
+                            <div class="flex items-center space-x-2">
+                                <div class="w-3 h-3 bg-blue-500 rounded"></div>
+                                <span class="text-sm text-gray-200">Em Execução</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
+                            <input type="checkbox" id="filterToday" class="w-4 h-4 text-cyan-600 bg-gray-100 border-gray-300 rounded focus:ring-cyan-500" checked>
+                            <div class="flex items-center space-x-2">
+                                <div class="w-3 h-3 bg-cyan-500 rounded"></div>
+                                <span class="text-sm text-gray-200">Hoje</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
+                            <input type="checkbox" id="filterUpcoming" class="w-4 h-4 text-yellow-600 bg-gray-100 border-gray-300 rounded focus:ring-yellow-500" checked>
+                            <div class="flex items-center space-x-2">
+                                <div class="w-3 h-3 bg-yellow-500 rounded"></div>
+                                <span class="text-sm text-gray-200">Próximos</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
+                            <input type="checkbox" id="filterCompleted" class="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500" checked>
+                            <div class="flex items-center space-x-2">
+                                <div class="w-3 h-3 bg-green-500 rounded"></div>
+                                <span class="text-sm text-gray-200">Concluído</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
+                            <input type="checkbox" id="filterPending" class="w-4 h-4 text-gray-600 bg-gray-100 border-gray-300 rounded focus:ring-gray-500" checked>
+                            <div class="flex items-center space-x-2">
+                                <div class="w-3 h-3 bg-gray-500 rounded"></div>
+                                <span class="text-sm text-gray-200">Pendente</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Painel de Agendamento -->
+                <div class="card mb-6">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <i data-lucide="calendar-clock" class="w-5 h-5 text-indigo-400"></i>
+                        <h3 class="text-md font-semibold text-white">Agendamento de Roçagem</h3>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Taxa de Produção (m²/dia)</label>
+                            <input type="number" id="productionRate" value="5000" class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-sm text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <button id="recalculateSchedule" class="btn-primary w-full flex items-center justify-center space-x-2">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                            <span>Recalcular Cronograma</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Painel de Cadastro/Edição -->
+                <div class="card mb-6">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <i data-lucide="map" class="w-5 h-5 text-green-400"></i>
+                        <h3 class="text-md font-semibold text-white">Cadastro de Área</h3>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Nome da Área</label>
+                            <input type="text" id="areaName" class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-sm text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Digite o nome da área">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Tipo de Serviço</label>
+                            <div class="bg-white/5 rounded-lg p-3 border border-white/10">
+                                <p class="text-sm text-gray-300 mb-2">
+                                    <i data-lucide="info" class="w-4 h-4 inline mr-1"></i>
+                                    Selecione o tipo de serviço nos blocos acima
+                                </p>
+                                <div class="text-xs text-gray-400" id="selectedServiceDisplay">
+                                    Nenhum serviço selecionado
+                                </div>
+                            </div>
+                            
+                            <!-- Campo oculto para armazenar o valor selecionado -->
+                            <input type="hidden" id="serviceType" value="">
+                        </div>
+                        <div id="rocagemFields" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Lote</label>
+                                <select id="areaLote" class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-sm text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <option value="1" class="bg-gray-800">Lote 1</option>
+                                    <option value="2" class="bg-gray-800">Lote 2</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Ordem</label>
+                                <input type="number" id="areaOrdem" class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-sm text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Ordem de execução">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Metragem (m²)</label>
+                                <input type="number" id="areaMetragem" class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-sm text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Área em m²">
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <button id="drawAreaBtn" class="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-2.5 px-4 rounded-lg text-sm font-medium hover:from-green-600 hover:to-emerald-700 transition-all duration-200 flex items-center justify-center space-x-2">
+                                <i data-lucide="pencil" class="w-4 h-4"></i>
+                                <span>Desenhar Área no Mapa</span>
+                            </button>
+                            <button id="saveAreaBtn" class="btn-primary w-full flex items-center justify-center space-x-2">
+                                <i data-lucide="save" class="w-4 h-4"></i>
+                                <span>Salvar Área</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Legenda de Status -->
+                <div class="mb-6">
+                    <h3 class="text-md font-semibold text-gray-700 mb-3">Legenda de Status</h3>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex items-center">
+                            <div class="w-4 h-4 bg-red-600 rounded mr-2"></div>
+                            <span>Crítico (Atrasado)</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-4 h-4 bg-green-500 rounded mr-2 pulse-animation"></div>
+                            <span>Em Execução</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-4 h-4 bg-yellow-500 rounded mr-2"></div>
+                            <span>Hoje</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-4 h-4 bg-yellow-300 rounded mr-2"></div>
+                            <span>Próximos 3 Dias</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-4 h-4 bg-blue-300 rounded mr-2"></div>
+                            <span>Próxima Semana</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-4 h-4 bg-green-800 rounded mr-2"></div>
+                            <span>Concluído Recente</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-4 h-4 bg-gray-400 rounded mr-2"></div>
+                            <span>Pendente</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Botão para abrir sidebar (circular discreto) -->
+        <button id="openSidebar" class="menu-toggle hidden">
+            <i data-lucide="panel-left-open" class="w-5 h-5"></i>
+        </button>
+        
+        <!-- Mapa -->
+        <div id="map" class="flex-1 map-container" style="margin-left: 400px;"></div>
+    </div>
+    
+    <!-- Modal de Área -->
+    <div id="areaModal" class="fixed inset-0 z-50 hidden">
+        <div class="modal-backdrop absolute inset-0"></div>
+        <div class="relative z-10 flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-screen overflow-y-auto">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 id="modalTitle" class="text-xl font-bold text-gray-800"></h2>
+                        <button id="closeModal" class="text-gray-500 hover:text-gray-700">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div id="modalContent" class="space-y-4">
+                        <!-- Conteúdo será preenchido dinamicamente -->
+                    </div>
+                    
+                    <div id="modalActions" class="mt-6 flex flex-wrap gap-2">
+                        <!-- Botões serão adicionados dinamicamente -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <!-- Leaflet Draw JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    
+    <script>
+        /**
+         * Configuração da aplicação
+         */
+        const APP_CONFIG = {
+            mowingProductionRate: 5000, // m²/dia
+            center: [-23.3045, -51.1696], // Coordenadas de Londrina
+            zoom: 12
+        };
+        
+        /**
+         * Base de dados simulada
+         */
+        const db = {
+            services: [
+                {
+                    id: 1,
+                    name: 'Área Central - Praça',
+                    type: 'Roçagem Áreas Públicas',
+                    lote: 1,
+                    ordem: 1,
+                    metragem_m2: 2500,
+                    status: 'Em Execução',
+                    scheduledDate: new Date(),
+                    completedDate: null,
+                    coordinates: [-23.3045, -51.1696],
+                    polygon: null,
+                    assignedTeam: 1,
+                    history: [
+                        { date: new Date(Date.now() - 86400000), action: 'Área criada', user: 'Sistema' },
+                        { date: new Date(), action: 'Serviço iniciado', user: 'Equipe 1' }
+                    ]
+                },
+                {
+                    id: 2,
+                    name: 'Parque Municipal',
+                    type: 'Roçagem Áreas Públicas',
+                    lote: 1,
+                    ordem: 2,
+                    metragem_m2: 8000,
+                    status: 'Hoje',
+                    scheduledDate: new Date(Date.now() + 86400000),
+                    completedDate: null,
+                    coordinates: [-23.3100, -51.1750],
+                    polygon: null,
+                    assignedTeam: null,
+                    history: [
+                        { date: new Date(Date.now() - 172800000), action: 'Área criada', user: 'Sistema' }
+                    ]
+                },
+                {
+                    id: 3,
+                    name: 'Jardim Botânico',
+                    type: 'Jardins',
+                    lote: null,
+                    ordem: null,
+                    metragem_m2: 1200,
+                    status: 'Pendente',
+                    scheduledDate: null,
+                    completedDate: null,
+                    coordinates: [-23.2950, -51.1600],
+                    polygon: null,
+                    assignedTeam: null,
+                    history: [
+                        { date: new Date(Date.now() - 259200000), action: 'Área criada', user: 'Sistema' }
+                    ]
+                },
+                {
+                    id: 4,
+                    name: 'Avenida Higienópolis',
+                    type: 'Varrição',
+                    status: 'Hoje',
+                    scheduledDate: new Date(),
+                    completedDate: null,
+                    coordinates: [-23.3080, -51.1720],
+                    polygon: null,
+                    assignedTeam: 2,
+                    history: [
+                        { date: new Date(Date.now() - 86400000), action: 'Área criada', user: 'Sistema' }
+                    ]
+                },
+                {
+                    id: 5,
+                    name: 'Coleta Zona Norte',
+                    type: 'Coleta Orgânicos e Rejeitos',
+                    status: 'Em Execução',
+                    scheduledDate: new Date(),
+                    completedDate: null,
+                    coordinates: [-23.2900, -51.1650],
+                    polygon: null,
+                    assignedTeam: 3,
+                    history: [
+                        { date: new Date(), action: 'Coleta iniciada', user: 'Equipe 3' }
+                    ]
+                },
+                {
+                    id: 6,
+                    name: 'PEV Centro',
+                    type: 'PEV\'s',
+                    status: 'Pendente',
+                    scheduledDate: null,
+                    completedDate: null,
+                    coordinates: [-23.3050, -51.1700],
+                    polygon: null,
+                    assignedTeam: null,
+                    history: [
+                        { date: new Date(Date.now() - 172800000), action: 'Área criada', user: 'Sistema' }
+                    ]
+                }
+            ],
+            teams: [
+                {
+                    id: 1,
+                    name: 'Equipe Alpha',
+                    type: 'Limpeza Urbana',
+                    status: 'Ativo',
+                    coordinates: [-23.3045, -51.1696],
+                    members: 4,
+                    specialties: ['Roçagem Áreas Públicas', 'Jardins', 'Podas', 'Varrição']
+                },
+                {
+                    id: 2,
+                    name: 'Equipe Beta',
+                    type: 'Limpeza Urbana',
+                    status: 'Ativo',
+                    coordinates: [-23.3200, -51.1800],
+                    members: 3,
+                    specialties: ['Varrição', 'Boa Praça', 'Chafariz', 'Manutenção Lagos']
+                },
+                {
+                    id: 3,
+                    name: 'Equipe Coleta',
+                    type: 'Resíduos',
+                    status: 'Ativo',
+                    coordinates: [-23.2900, -51.1500],
+                    members: 5,
+                    specialties: ['Coleta Orgânicos e Rejeitos', 'Coleta Recicláveis', 'Limpeza de Bocas de Lobo']
+                },
+                {
+                    id: 4,
+                    name: 'Equipe Especial',
+                    type: 'Resíduos',
+                    status: 'Idle',
+                    coordinates: [-23.3100, -51.1650],
+                    members: 3,
+                    specialties: ['Coleta e Limpeza Especiais', 'PEV\'s']
+                }
+            ]
+        };
+        
+        // Variáveis globais
+        let map;
+        let layerGroups = {};
+        let drawControl;
+        let currentDrawnLayer = null;
+        let selectedArea = null;
+        
+        /**
+         * Adiciona dias úteis a uma data (pula fins de semana)
+         * @param {Date} date - Data inicial
+         * @param {number} days - Número de dias úteis a adicionar
+         * @returns {Date} Nova data
+         */
+        function addBusinessDays(date, days) {
+            const result = new Date(date);
+            let addedDays = 0;
+            
+            while (addedDays < days) {
+                result.setDate(result.getDate() + 1);
+                // Se não for sábado (6) nem domingo (0)
+                if (result.getDay() !== 0 && result.getDay() !== 6) {
+                    addedDays++;
+                }
+            }
+            
+            return result;
+        }
+        
+        /**
+         * Calcula o cronograma de roçagem para áreas pendentes
+         */
+        function calculateMowingSchedule() {
+            const rocagemAreas = db.services.filter(area => 
+                area.type === 'Roçagem' && 
+                area.status !== 'Concluído' && 
+                area.status !== 'Em Execução'
+            );
+            
+            // Agrupa por lote e ordena
+            const lotes = {};
+            rocagemAreas.forEach(area => {
+                if (!lotes[area.lote]) {
+                    lotes[area.lote] = [];
+                }
+                lotes[area.lote].push(area);
+            });
+            
+            // Calcula datas para cada lote
+            Object.keys(lotes).forEach(lote => {
+                lotes[lote].sort((a, b) => a.ordem - b.ordem);
+                
+                let currentDate = new Date();
+                
+                lotes[lote].forEach(area => {
+                    const diasNecessarios = Math.ceil(area.metragem_m2 / APP_CONFIG.mowingProductionRate);
+                    area.scheduledDate = new Date(currentDate);
+                    currentDate = addBusinessDays(currentDate, diasNecessarios);
+                    
+                    // Atualiza status baseado na data agendada
+                    updateAreaStatus(area);
+                });
+            });
+            
+            console.log('Cronograma de roçagem recalculado');
+        }
+        
+        /**
+         * Atualiza o status de uma área baseado na data agendada
+         * @param {Object} area - Área a ser atualizada
+         */
+        function updateAreaStatus(area) {
+            if (area.type !== 'Roçagem' || area.status === 'Em Execução' || area.status === 'Concluído') {
+                return;
+            }
+            
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0);
+            
+            const scheduledDate = new Date(area.scheduledDate);
+            scheduledDate.setHours(0, 0, 0, 0);
+            
+            const diffTime = scheduledDate.getTime() - hoje.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays < 0) {
+                area.status = 'Crítico';
+            } else if (diffDays === 0) {
+                area.status = 'Hoje';
+            } else if (diffDays <= 3) {
+                area.status = 'Próximos 3 Dias';
+            } else if (diffDays <= 7) {
+                area.status = 'Próxima Semana';
+            } else {
+                area.status = 'Pendente';
+            }
+        }
+        
+        /**
+         * Retorna a cor baseada no status da área
+         * @param {string} status - Status da área
+         * @returns {string} Cor em hexadecimal
+         */
+        function getStatusColor(status) {
+            const colors = {
+                'Crítico': '#dc2626',
+                'Em Execução': '#16a34a',
+                'Hoje': '#eab308',
+                'Próximos 3 Dias': '#fde047',
+                'Próxima Semana': '#93c5fd',
+                'Concluído': '#166534',
+                'Pendente': '#6b7280'
+            };
+            return colors[status] || '#6b7280';
+        }
+        
+        /**
+         * Inicializa o mapa
+         */
+        function initMap() {
+            map = L.map('map').setView(APP_CONFIG.center, APP_CONFIG.zoom);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            // Inicializa grupos de camadas
+            layerGroups = {
+                rocagemLote1: L.layerGroup().addTo(map),
+                rocagemLote2: L.layerGroup().addTo(map),
+                jardins: L.layerGroup().addTo(map),
+                equipes: L.layerGroup().addTo(map)
+            };
+            
+            // Inicializa controle de desenho
+            const drawGroup = new L.FeatureGroup();
+            map.addLayer(drawGroup);
+            
+            drawControl = new L.Control.Draw({
+                edit: {
+                    featureGroup: drawGroup
+                },
+                draw: {
+                    polygon: true,
+                    polyline: false,
+                    rectangle: false,
+                    circle: false,
+                    marker: false,
+                    circlemarker: false
+                }
+            });
+            
+            // Event listener para desenho criado
+            map.on(L.Draw.Event.CREATED, function(e) {
+                const layer = e.layer;
+                currentDrawnLayer = layer;
+                
+                // Mostra modal para associar à área
+                showPolygonAssignModal(layer);
+            });
+        }
+        
+        /**
+         * Renderiza as áreas no mapa
+         */
+        function renderAreas() {
+            // Limpa camadas existentes
+            Object.values(layerGroups).forEach(group => group.clearLayers());
+            
+            db.services.forEach(area => {
+                let layer;
+                const color = getStatusColor(area.status);
+                
+                if (area.polygon) {
+                    // Renderiza como polígono
+                    layer = L.polygon(area.polygon, {
+                        color: color,
+                        fillColor: color,
+                        fillOpacity: area.status === 'Em Execução' ? 0.8 : 0.6,
+                        weight: 3,
+                        className: area.status === 'Em Execução' ? 'pulse-animation' : ''
+                    });
+                } else {
+                    // Renderiza como marcador
+                    layer = L.marker(area.coordinates, {
+                        icon: L.divIcon({
+                            className: 'custom-marker',
+                            html: `<div style="background-color: ${color}; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; ${area.status === 'Em Execução' ? 'animation: pulse 2s infinite;' : ''}"></div>`,
+                            iconSize: [20, 20],
+                            iconAnchor: [10, 10]
+                        })
+                    });
+                }
+                
+                // Adiciona popup
+                const popupContent = `
+                    <div class="p-2">
+                        <h3 class="font-bold">${area.name}</h3>
+                        <p class="text-sm">Tipo: ${area.type}</p>
+                        <p class="text-sm">Status: <span class="status-${area.status.toLowerCase().replace(/\s+/g, '-')}">${area.status}</span></p>
+                        ${area.scheduledDate ? `<p class="text-sm">Agendado: ${area.scheduledDate.toLocaleDateString('pt-BR')}</p>` : ''}
+                        ${area.metragem_m2 ? `<p class="text-sm">Área: ${area.metragem_m2.toLocaleString('pt-BR')} m²</p>` : ''}
+                    </div>
+                `;
+                
+                layer.bindPopup(popupContent);
+                
+                // Event listener para clique
+                layer.on('click', () => showAreaModal(area));
+                
+                // Adiciona à camada apropriada
+                if (area.type === 'Roçagem') {
+                    if (area.lote === 1) {
+                        layerGroups.rocagemLote1.addLayer(layer);
+                    } else if (area.lote === 2) {
+                        layerGroups.rocagemLote2.addLayer(layer);
+                    }
+                } else if (area.type === 'Jardins') {
+                    layerGroups.jardins.addLayer(layer);
+                }
+            });
+        }
+        
+        /**
+         * Renderiza as equipes no mapa
+         */
+        function renderTeams() {
+            layerGroups.equipes.clearLayers();
+            
+            db.teams.forEach(team => {
+                const opacity = team.status === 'Idle' ? 0.6 : 1.0;
+                const color = team.type === 'Limpeza Urbana' ? '#3b82f6' : '#10b981';
+                
+                const marker = L.marker(team.coordinates, {
+                    icon: L.divIcon({
+                        className: 'team-marker',
+                        html: `<div style="background-color: ${color}; opacity: ${opacity}; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 12px;">${team.members}</div>`,
+                        iconSize: [30, 30],
+                        iconAnchor: [15, 15]
+                    })
+                });
+                
+                const specialtiesText = team.specialties ? team.specialties.join(', ') : 'Não especificado';
+                
+                const popupContent = `
+                    <div class="p-2">
+                        <h3 class="font-bold">${team.name}</h3>
+                        <p class="text-sm">Tipo: ${team.type}</p>
+                        <p class="text-sm">Status: ${team.status}</p>
+                        <p class="text-sm">Membros: ${team.members}</p>
+                        <p class="text-sm">Especialidades: ${specialtiesText}</p>
+                    </div>
+                `;
+                
+                marker.bindPopup(popupContent);
+                layerGroups.equipes.addLayer(marker);
+            });
+        }
+        
+        /**
+         * Mostra o modal de área
+         * @param {Object} area - Área selecionada
+         */
+        function showAreaModal(area) {
+            selectedArea = area;
+            const modal = document.getElementById('areaModal');
+            const title = document.getElementById('modalTitle');
+            const content = document.getElementById('modalContent');
+            const actions = document.getElementById('modalActions');
+            
+            title.textContent = area.name;
+            
+            // Conteúdo do modal
+            content.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <h4 class="font-semibold mb-2">Informações Gerais</h4>
+                        <p><strong>Tipo:</strong> ${area.type}</p>
+                        <p><strong>Status:</strong> <span class="status-${area.status.toLowerCase().replace(/\s+/g, '-')}">${area.status}</span></p>
+                        ${area.lote ? `<p><strong>Lote:</strong> ${area.lote}</p>` : ''}
+                        ${area.ordem ? `<p><strong>Ordem:</strong> ${area.ordem}</p>` : ''}
+                        ${area.metragem_m2 ? `<p><strong>Área:</strong> ${area.metragem_m2.toLocaleString('pt-BR')} m²</p>` : ''}
+                        ${area.scheduledDate ? `<p><strong>Data Agendada:</strong> ${area.scheduledDate.toLocaleDateString('pt-BR')}</p>` : ''}
+                        ${area.completedDate ? `<p><strong>Data Conclusão:</strong> ${area.completedDate.toLocaleDateString('pt-BR')}</p>` : ''}
+                        ${area.assignedTeam ? `<p><strong>Equipe:</strong> ${db.teams.find(t => t.id === area.assignedTeam)?.name || 'N/A'}</p>` : ''}
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">Histórico</h4>
+                        <div class="max-h-32 overflow-y-auto">
+                            ${area.history.map(h => `
+                                <div class="text-sm mb-1">
+                                    <span class="text-gray-500">${h.date.toLocaleDateString('pt-BR')}</span><br>
+                                    <span>${h.action}</span> - <em>${h.user}</em>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Botões de ação
+            actions.innerHTML = '';
+            
+            if (area.status !== 'Em Execução' && area.status !== 'Concluído') {
+                const startBtn = document.createElement('button');
+                startBtn.className = 'bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700';
+                startBtn.textContent = 'Iniciar Serviço';
+                startBtn.onclick = () => startService(area);
+                actions.appendChild(startBtn);
+            }
+            
+            if (area.status === 'Em Execução') {
+                const completeBtn = document.createElement('button');
+                completeBtn.className = 'bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700';
+                completeBtn.textContent = 'Concluir Serviço';
+                completeBtn.onclick = () => completeService(area);
+                actions.appendChild(completeBtn);
+            }
+            
+            if (!area.assignedTeam && area.status !== 'Concluído') {
+                const assignBtn = document.createElement('button');
+                assignBtn.className = 'bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700';
+                assignBtn.textContent = 'Atribuir Equipe';
+                assignBtn.onclick = () => showTeamAssignModal(area);
+                actions.appendChild(assignBtn);
+            }
+            
+            modal.classList.remove('hidden');
+        }
+        
+        /**
+         * Inicia um serviço
+         * @param {Object} area - Área do serviço
+         */
+        function startService(area) {
+            area.status = 'Em Execução';
+            area.history.push({
+                date: new Date(),
+                action: 'Serviço iniciado',
+                user: area.assignedTeam ? db.teams.find(t => t.id === area.assignedTeam)?.name : 'Sistema'
+            });
+            
+            closeModal();
+            renderAreas();
+        }
+        
+        /**
+         * Completa um serviço
+         * @param {Object} area - Área do serviço
+         */
+        function completeService(area) {
+            area.status = 'Concluído';
+            area.completedDate = new Date();
+            area.history.push({
+                date: new Date(),
+                action: 'Serviço concluído',
+                user: area.assignedTeam ? db.teams.find(t => t.id === area.assignedTeam)?.name : 'Sistema'
+            });
+            
+            // Se for roçagem, recalcula o cronograma do lote
+            if (area.type === 'Roçagem') {
+                calculateMowingSchedule();
+            }
+            
+            closeModal();
+            renderAreas();
+        }
+        
+        /**
+         * Mostra modal para atribuir equipe
+         * @param {Object} area - Área do serviço
+         */
+        function showTeamAssignModal(area) {
+            const availableTeams = db.teams.filter(team => 
+                team.status === 'Idle' && 
+                team.specialties && 
+                team.specialties.includes(area.type)
+            );
+            
+            if (availableTeams.length === 0) {
+                alert('Não há equipes disponíveis para este tipo de serviço.');
+                return;
+            }
+            
+            const content = document.getElementById('modalContent');
+            content.innerHTML = `
+                <div>
+                    <h4 class="font-semibold mb-3">Selecionar Equipe</h4>
+                    <p class="text-sm text-gray-600 mb-3">Serviço: ${area.type}</p>
+                    <select id="teamSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <option value="">Selecione uma equipe...</option>
+                        ${availableTeams.map(team => `
+                            <option value="${team.id}">${team.name} (${team.members} membros) - ${team.type}</option>
+                        `).join('')}
+                    </select>
+                </div>
+            `;
+            
+            const actions = document.getElementById('modalActions');
+            actions.innerHTML = `
+                <button id="confirmAssign" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Confirmar</button>
+                <button onclick="showAreaModal(selectedArea)" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">Voltar</button>
+            `;
+            
+            document.getElementById('confirmAssign').onclick = () => {
+                const teamId = parseInt(document.getElementById('teamSelect').value);
+                if (teamId) {
+                    area.assignedTeam = teamId;
+                    const team = db.teams.find(t => t.id === teamId);
+                    team.status = 'Ativo';
+                    
+                    area.history.push({
+                        date: new Date(),
+                        action: `Equipe ${team.name} atribuída`,
+                        user: 'Sistema'
+                    });
+                    
+                    showAreaModal(area);
+                    renderTeams();
+                }
+            };
+        }
+        
+        /**
+         * Mostra modal para associar polígono à área
+         * @param {Object} layer - Layer do polígono desenhado
+         */
+        function showPolygonAssignModal(layer) {
+            const modal = document.getElementById('areaModal');
+            const title = document.getElementById('modalTitle');
+            const content = document.getElementById('modalContent');
+            const actions = document.getElementById('modalActions');
+            
+            title.textContent = 'Associar Polígono à Área';
+            
+            content.innerHTML = `
+                <div>
+                    <h4 class="font-semibold mb-3">Selecionar Área</h4>
+                    <select id="areaSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <option value="">Selecione uma área...</option>
+                        ${db.services.map(area => `
+                            <option value="${area.id}">${area.name} (${area.type})</option>
+                        `).join('')}
+                    </select>
+                </div>
+            `;
+            
+            actions.innerHTML = `
+                <button id="confirmPolygon" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Confirmar</button>
+                <button onclick="cancelPolygon()" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">Cancelar</button>
+            `;
+            
+            document.getElementById('confirmPolygon').onclick = () => {
+                const areaId = parseInt(document.getElementById('areaSelect').value);
+                if (areaId) {
+                    const area = db.services.find(a => a.id === areaId);
+                    area.polygon = layer.getLatLngs()[0].map(latlng => [latlng.lat, latlng.lng]);
+                    
+                    area.history.push({
+                        date: new Date(),
+                        action: 'Polígono definido',
+                        user: 'Sistema'
+                    });
+                    
+                    closeModal();
+                    renderAreas();
+                    currentDrawnLayer = null;
+                }
+            };
+            
+            modal.classList.remove('hidden');
+        }
+        
+        /**
+         * Cancela o desenho do polígono
+         */
+        function cancelPolygon() {
+            if (currentDrawnLayer) {
+                map.removeLayer(currentDrawnLayer);
+                currentDrawnLayer = null;
+            }
+            closeModal();
+        }
+        
+        /**
+         * Fecha o modal
+         */
+        function closeModal() {
+            document.getElementById('areaModal').classList.add('hidden');
+        }
+        
+        /**
+         * Salva uma nova área
+         */
+        function saveNewArea() {
+            const name = document.getElementById('areaName').value;
+            const type = document.getElementById('serviceType').value;
+            
+            if (!name) {
+                alert('Por favor, digite o nome da área.');
+                return;
+            }
+            
+            if (!type) {
+                alert('Por favor, selecione um tipo de serviço.');
+                return;
+            }
+            
+            const newArea = {
+                id: Math.max(...db.services.map(s => s.id)) + 1,
+                name: name,
+                type: type,
+                status: 'Pendente',
+                coordinates: APP_CONFIG.center,
+                polygon: null,
+                assignedTeam: null,
+                history: [
+                    { date: new Date(), action: 'Área criada', user: 'Sistema' }
+                ]
+            };
+            
+            // Campos específicos para Roçagem Áreas Públicas
+            if (type === 'Roçagem Áreas Públicas') {
+                const lote = parseInt(document.getElementById('areaLote').value);
+                const ordem = parseInt(document.getElementById('areaOrdem').value);
+                const metragem = parseInt(document.getElementById('areaMetragem').value);
+                
+                if (!ordem || !metragem) {
+                    alert('Por favor, preencha todos os campos obrigatórios para roçagem.');
+                    return;
+                }
+                
+                newArea.lote = lote;
+                newArea.ordem = ordem;
+                newArea.metragem_m2 = metragem;
+                newArea.scheduledDate = null;
+                newArea.completedDate = null;
+            }
+            
+            db.services.push(newArea);
+            
+            // Limpa o formulário
+            document.getElementById('areaName').value = '';
+            document.getElementById('areaOrdem').value = '';
+            document.getElementById('areaMetragem').value = '';
+            
+            // Limpa seleção de serviços
+            const serviceRadios = document.querySelectorAll('input[name="serviceType"]');
+            serviceRadios.forEach(radio => radio.checked = false);
+            document.getElementById('serviceType').value = '';
+            
+            // Reseta o display no formulário de cadastro
+            const selectedServiceDisplay = document.getElementById('selectedServiceDisplay');
+            if (selectedServiceDisplay) {
+                selectedServiceDisplay.textContent = 'Nenhum serviço selecionado';
+                selectedServiceDisplay.className = 'text-xs text-gray-400';
+            }
+            
+            // Esconde campos de roçagem
+            document.getElementById('rocagemFields').style.display = 'none';
+            
+            // Recalcula cronograma se for roçagem
+            if (type === 'Roçagem Áreas Públicas') {
+                calculateMowingSchedule();
+            }
+            
+            renderAreas();
+            alert('Área salva com sucesso!');
+        }
+        
+        /**
+         * Inicialização da aplicação
+         */
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar ícones Lucide
+            lucide.createIcons();
+            
+            // Garante que a sidebar esteja visível
+            const sidebar = document.getElementById('sidebar');
+            const openButton = document.getElementById('openSidebar');
+            
+            // Função para forçar visibilidade da sidebar
+            function forceSidebarVisible() {
+                sidebar.style.transform = 'translateX(0)';
+                sidebar.style.display = 'block';
+                sidebar.style.visibility = 'visible';
+                sidebar.style.opacity = '1';
+                openButton.classList.add('hidden');
+                document.getElementById('map').style.marginLeft = '400px';
+            }
+            
+            // Força o estado inicial
+            forceSidebarVisible();
+            
+            // Inicializa o mapa
+            initMap();
+            
+            // Calcula cronograma inicial
+            calculateMowingSchedule();
+            
+            // Renderiza áreas e equipes
+            renderAreas();
+            renderTeams();
+            
+            // Event listeners para sidebar
+            document.getElementById('closeSidebar').addEventListener('click', function() {
+                const sidebar = document.getElementById('sidebar');
+                const mapDiv = document.getElementById('map');
+                const openBtn = document.getElementById('openSidebar');
+                
+                // Esconde completamente a sidebar
+                sidebar.style.setProperty('transform', 'translateX(-100%)', 'important');
+                sidebar.style.setProperty('visibility', 'hidden', 'important');
+                sidebar.style.setProperty('opacity', '0', 'important');
+                
+                // Ajusta o mapa para ocupar toda a tela
+                mapDiv.style.marginLeft = '0';
+                mapDiv.style.width = '100%';
+                
+                // Mostra o botão circular e ajusta sua posição
+                openBtn.classList.remove('hidden');
+                openBtn.classList.add('collapsed');
+                
+                // Reinicializa os ícones após mudança
+                setTimeout(() => lucide.createIcons(), 100);
+            });
+            
+            document.getElementById('openSidebar').addEventListener('click', function() {
+                const sidebar = document.getElementById('sidebar');
+                const mapDiv = document.getElementById('map');
+                const openBtn = document.getElementById('openSidebar');
+                
+                // Mostra a sidebar
+                sidebar.style.setProperty('transform', 'translateX(0)', 'important');
+                sidebar.style.setProperty('visibility', 'visible', 'important');
+                sidebar.style.setProperty('opacity', '1', 'important');
+                
+                // Ajusta o mapa para dar espaço à sidebar
+                mapDiv.style.marginLeft = '400px';
+                mapDiv.style.width = 'calc(100% - 400px)';
+                
+                // Esconde o botão circular e remove a classe collapsed
+                openBtn.classList.add('hidden');
+                openBtn.classList.remove('collapsed');
+                
+                // Reinicializa os ícones após mudança
+                setTimeout(() => lucide.createIcons(), 100);
+            });
+            
+            // Função para alternar blocos de serviços
+            window.toggleServiceBlock = function(blockId) {
+                const content = document.getElementById(blockId + 'Services');
+                const chevron = document.getElementById(blockId + 'Chevron');
+                
+                if (content.classList.contains('hidden')) {
+                    content.classList.remove('hidden');
+                    chevron.style.transform = 'rotate(180deg)';
+                } else {
+                    content.classList.add('hidden');
+                    chevron.style.transform = 'rotate(0deg)';
+                }
+                
+                // Reinicializa os ícones após mudança
+                setTimeout(() => lucide.createIcons(), 100);
+            };
+            
+            // Event listeners para seleção de serviços
+            document.addEventListener('change', function(e) {
+                if (e.target.name === 'serviceType') {
+                    const hiddenInput = document.getElementById('serviceType');
+                    hiddenInput.value = e.target.value;
+                    
+                    // Atualiza o display no formulário de cadastro
+                    const selectedServiceDisplay = document.getElementById('selectedServiceDisplay');
+                    if (selectedServiceDisplay) {
+                        selectedServiceDisplay.textContent = e.target.value;
+                        selectedServiceDisplay.className = 'text-xs text-green-400 font-medium';
+                    }
+                    
+                    // Controla a visibilidade dos campos de roçagem
+                    const rocagemFields = document.getElementById('rocagemFields');
+                    if (e.target.value === 'Roçagem Áreas Públicas') {
+                        rocagemFields.style.display = 'block';
+                    } else {
+                        rocagemFields.style.display = 'none';
+                    }
+                }
+            });
+            
+            // Event listeners para botões
+            document.getElementById('recalculateSchedule').addEventListener('click', function() {
+                APP_CONFIG.mowingProductionRate = parseInt(document.getElementById('productionRate').value) || 5000;
+                calculateMowingSchedule();
+                renderAreas();
+                alert('Cronograma recalculado com sucesso!');
+            });
+            
+            document.getElementById('drawAreaBtn').addEventListener('click', function() {
+                map.addControl(drawControl);
+                alert('Clique no ícone de polígono no mapa para começar a desenhar.');
+            });
+            
+            document.getElementById('saveAreaBtn').addEventListener('click', saveNewArea);
+            
+            document.getElementById('closeModal').addEventListener('click', closeModal);
+            
+            // Event listener para fechar modal clicando no backdrop
+            document.querySelector('.modal-backdrop').addEventListener('click', closeModal);
+            
+            console.log('Dashboard CMTU-LD inicializado com sucesso!');
+        });
+        
+        // Garante que a sidebar permaneça visível após carregamento completo
+        window.addEventListener('load', function() {
+            const sidebar = document.getElementById('sidebar');
+            const openButton = document.getElementById('openSidebar');
+            
+            // Força novamente o estado correto após carregamento completo
+            sidebar.classList.remove('collapsed');
+            openButton.classList.add('hidden');
+            sidebar.style.transform = 'translateX(0)';
+            
+            console.log('Sidebar forçada a permanecer visível após carregamento completo');
+        });
     </script>
-    <script type="module" src="/index.tsx"></script>
 </body>
 </html>
