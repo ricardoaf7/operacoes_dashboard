@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Teste de Pontos no Mapa</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+        #map { height: 500px; width: 100%; border: 2px solid #333; }
+        #debug { margin-top: 20px; padding: 10px; background: #f0f0f0; }
+        .log { margin: 5px 0; padding: 5px; background: white; border-left: 3px solid #007cba; }
+        .error { border-left-color: #dc3545; }
+        .success { border-left-color: #28a745; }
+    </style>
+</head>
+<body>
+    <h1>🗺️ Debug - Teste de Pontos no Mapa</h1>
+    <div id="map"></div>
+    <div id="debug">
+        <h3>📋 Logs de Debug:</h3>
+        <div id="logs"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script>
+        // Configuração do Supabase
+        const SUPABASE_URL = 'https://rwfolmphjmuyqocetitv.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3Zm9sbXBoam11eXFvY2V0aXR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2NjA2MTcsImV4cCI6MjA3NzIzNjYxN30.O1ll_msQWobgghQAg0TA5s4Xl7ZrOJNYKOXJ0zDS8B8';
+
+        // Sistema de logs
+        function addLog(message, type = 'log') {
+            const logsDiv = document.getElementById('logs');
+            const logDiv = document.createElement('div');
+            logDiv.className = `log ${type}`;
+            logDiv.innerHTML = `${new Date().toLocaleTimeString()}: ${message}`;
+            logsDiv.appendChild(logDiv);
+            console.log(message);
+        }
+
+        // Inicializar mapa
+        addLog('🗺️ Inicializando mapa...');
+        const map = L.map('map').setView([-23.3045, -51.1485], 13);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        addLog('✅ Mapa inicializado');
+
+        // Configurar Supabase
+        addLog('🔧 Configurando Supabase...');
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        addLog('✅ Supabase configurado');
+
+        // Função para testar conexão e carregar dados
+        async function testMapPoints() {
+            try {
+                addLog('🔍 Buscando dados da tabela rocagem_areas_publicas...');
+                
+                const { data, error } = await supabase
+                    .from('rocagem_areas_publicas')
+                    .select('*');
+
+                if (error) {
+                    addLog(`❌ Erro ao buscar dados: ${error.message}`, 'error');
+                    return;
+                }
+
+                addLog(`✅ Dados recebidos: ${data.length} registros`, 'success');
+
+                // Filtrar registros com coordenadas válidas
+                const validAreas = data.filter(area => {
+                    const lat = parseFloat(area.latitude);
+                    const lng = parseFloat(area.longitude);
+                    return !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
+                });
+
+                addLog(`✅ Áreas com coordenadas válidas: ${validAreas.length}`, 'success');
+
+                // Adicionar marcadores ao mapa
+                let markersAdded = 0;
+                validAreas.forEach((area, index) => {
+                    try {
+                        const lat = parseFloat(area.latitude);
+                        const lng = parseFloat(area.longitude);
+                        
+                        const marker = L.marker([lat, lng]).addTo(map);
+                        marker.bindPopup(`
+                            <strong>${area.endereco}</strong><br>
+                            Bairro: ${area.bairro}<br>
+                            Status: ${area.status}<br>
+                            Coordenadas: ${lat}, ${lng}
+                        `);
+                        
+                        markersAdded++;
+                        
+                        if (index < 3) {
+                            addLog(`📍 Marcador ${index + 1}: ${area.endereco} (${lat}, ${lng})`);
+                        }
+                    } catch (err) {
+                        addLog(`❌ Erro ao criar marcador para ${area.endereco}: ${err.message}`, 'error');
+                    }
+                });
+
+                addLog(`🎯 Total de marcadores adicionados: ${markersAdded}`, 'success');
+
+                // Ajustar zoom para mostrar todos os marcadores
+                if (markersAdded > 0) {
+                    const group = new L.featureGroup();
+                    validAreas.forEach(area => {
+                        const lat = parseFloat(area.latitude);
+                        const lng = parseFloat(area.longitude);
+                        group.addLayer(L.marker([lat, lng]));
+                    });
+                    map.fitBounds(group.getBounds().pad(0.1));
+                    addLog('🔍 Zoom ajustado para mostrar todos os pontos');
+                }
+
+            } catch (error) {
+                addLog(`❌ Erro geral: ${error.message}`, 'error');
+            }
+        }
+
+        // Executar teste
+        addLog('🚀 Iniciando teste...');
+        testMapPoints();
+    </script>
+</body>
+</html>

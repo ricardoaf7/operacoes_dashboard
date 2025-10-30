@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Rocagem</title>
+</head>
+<body>
+    <h1>Debug Rocagem Areas</h1>
+    <div id="output"></div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script>
+        const APP_CONFIG = {
+            supabase: {
+                url: 'https://rwfolmphjmuyqocetitv.supabase.co',
+                anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3Zm9sbXBoam11eXFvY2V0aXR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2NjA2MTcsImV4cCI6MjA3NzIzNjYxN30.O1ll_msQWobgghQAg0TA5s4Xl7ZrOJNYKOXJ0zDS8B8'
+            }
+        };
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(APP_CONFIG.supabase.url, APP_CONFIG.supabase.anonKey);
+
+        const output = document.getElementById('output');
+
+        function log(message) {
+            console.log(message);
+            output.innerHTML += '<p>' + JSON.stringify(message) + '</p>';
+        }
+
+        async function testRocagemConnection() {
+            log('🔄 Testando conexão com Supabase...');
+            
+            try {
+                log('🔄 Fazendo consulta à tabela rocagem_areas_publicas...');
+                
+                const { data, error } = await supabaseClient
+                    .from('rocagem_areas_publicas')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                log('📊 Resposta do Supabase:');
+                log({ data, error });
+
+                if (error) {
+                    log('❌ Erro encontrado: ' + error.message);
+                } else {
+                    log('✅ Sucesso! Registros encontrados: ' + (data?.length || 0));
+                    if (data && data.length > 0) {
+                        log('📋 Primeiro registro:');
+                        log(data[0]);
+                    }
+                }
+            } catch (error) {
+                log('❌ Exceção capturada: ' + error.message);
+            }
+        }
+
+        // Executar teste quando a página carregar
+        window.addEventListener('load', testRocagemConnection);
+    </script>
+</body>
+</html>
