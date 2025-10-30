@@ -14,6 +14,9 @@
     <!-- Leaflet Draw CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
     
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         :root {
             --cmtu-primary: #1e1c3e;
@@ -69,6 +72,32 @@
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* Estilos customizados para scrollbar */
+        .sidebar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            transition: background 0.3s ease;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Para Firefox */
+        .sidebar {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
         }
         
         .map-container {
@@ -528,105 +557,102 @@
         };
         
         /**
-         * Base de dados simulada
+         * Funções do Supabase
+         */
+        
+        // Função para converter dados do Supabase para o formato do sistema
+        function convertSupabaseToSystemFormat(supabaseData) {
+            console.log('🔄 Convertendo dados do Supabase:', supabaseData.length, 'registros');
+            
+            const converted = supabaseData.map((area, index) => {
+                // Mapear status do Supabase para o formato do sistema
+                const statusMap = {
+                    'nao_programado': 'Pendente',
+                    'programado': 'Hoje',
+                    'em_andamento': 'Em Execução',
+                    'concluido': 'Concluído'
+                };
+
+                const convertedArea = {
+                    id: area.id,
+                    name: `${area.endereco} - ${area.bairro}`,
+                    type: 'Roçagem Áreas Públicas',
+                    lote: area.lote,
+                    ordem: index + 1,
+                    metragem_m2: area.metragem_m2,
+                    status: statusMap[area.status] || 'Pendente',
+                    scheduledDate: area.data_programada ? new Date(area.data_programada) : null,
+                    completedDate: area.data_ultima_rocagem ? new Date(area.data_ultima_rocagem) : null,
+                    coordinates: [area.latitude, area.longitude],
+                    polygon: null,
+                    assignedTeam: null,
+                    endereco: area.endereco,
+                    bairro: area.bairro,
+                    prioridade: area.prioridade,
+                    frequencia_dias: area.frequencia_dias,
+                    proxima_rocagem_prevista: area.proxima_rocagem_prevista,
+                    observacoes: area.observacoes,
+                    history: [
+                        { 
+                            date: new Date(area.created_at), 
+                            action: 'Área cadastrada', 
+                            user: 'Sistema' 
+                        }
+                    ]
+                };
+                
+                console.log(`📍 Área ${index + 1}:`, convertedArea.name, 'Coordenadas:', convertedArea.coordinates, 'Tipo:', convertedArea.type);
+                return convertedArea;
+            });
+            
+            console.log('✅ Conversão concluída:', converted.length, 'áreas convertidas');
+            return converted;
+        }
+
+        // Função para carregar dados do Supabase
+        async function loadSupabaseData() {
+            try {
+                console.log('🔄 Carregando dados do Supabase...');
+                
+                const { data, error } = await supabase
+                    .from('rocagem_areas_publicas')
+                    .select('*')
+                    .order('id', { ascending: true });
+
+                if (error) {
+                    console.error('❌ Erro ao carregar dados do Supabase:', error);
+                    return false;
+                }
+
+                console.log(`✅ ${data.length} áreas carregadas do Supabase`);
+                
+                // Converter dados e substituir no db
+                const convertedServices = convertSupabaseToSystemFormat(data);
+                db.services = convertedServices;
+                
+                return true;
+            } catch (error) {
+                console.error('❌ Erro geral ao carregar Supabase:', error);
+                return false;
+            }
+        }
+
+        /**
+         * Configuração do Supabase
+         */
+        const SUPABASE_CONFIG = {
+            url: 'https://rwfolmphjmuyqocetitv.supabase.co',
+            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3Zm9sbXBoam11eXFvY2V0aXR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2NjA2MTcsImV4cCI6MjA3NzIzNjYxN30.O1ll_msQWobgghQAg0TA5s4Xl7ZrOJNYKOXJ0zDS8B8'
+        };
+
+        // Inicializar cliente Supabase
+        const supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+        
+        /**
+         * Base de dados (será preenchida pelos dados do Supabase)
          */
         const db = {
-            services: [
-                {
-                    id: 1,
-                    name: 'Área Central - Praça',
-                    type: 'Roçagem Áreas Públicas',
-                    lote: 1,
-                    ordem: 1,
-                    metragem_m2: 2500,
-                    status: 'Em Execução',
-                    scheduledDate: new Date(),
-                    completedDate: null,
-                    coordinates: [-23.3045, -51.1696],
-                    polygon: null,
-                    assignedTeam: 1,
-                    history: [
-                        { date: new Date(Date.now() - 86400000), action: 'Área criada', user: 'Sistema' },
-                        { date: new Date(), action: 'Serviço iniciado', user: 'Equipe 1' }
-                    ]
-                },
-                {
-                    id: 2,
-                    name: 'Parque Municipal',
-                    type: 'Roçagem Áreas Públicas',
-                    lote: 1,
-                    ordem: 2,
-                    metragem_m2: 8000,
-                    status: 'Hoje',
-                    scheduledDate: new Date(Date.now() + 86400000),
-                    completedDate: null,
-                    coordinates: [-23.3100, -51.1750],
-                    polygon: null,
-                    assignedTeam: null,
-                    history: [
-                        { date: new Date(Date.now() - 172800000), action: 'Área criada', user: 'Sistema' }
-                    ]
-                },
-                {
-                    id: 3,
-                    name: 'Jardim Botânico',
-                    type: 'Jardins',
-                    lote: null,
-                    ordem: null,
-                    metragem_m2: 1200,
-                    status: 'Pendente',
-                    scheduledDate: null,
-                    completedDate: null,
-                    coordinates: [-23.2950, -51.1600],
-                    polygon: null,
-                    assignedTeam: null,
-                    history: [
-                        { date: new Date(Date.now() - 259200000), action: 'Área criada', user: 'Sistema' }
-                    ]
-                },
-                {
-                    id: 4,
-                    name: 'Avenida Higienópolis',
-                    type: 'Varrição',
-                    status: 'Hoje',
-                    scheduledDate: new Date(),
-                    completedDate: null,
-                    coordinates: [-23.3080, -51.1720],
-                    polygon: null,
-                    assignedTeam: 2,
-                    history: [
-                        { date: new Date(Date.now() - 86400000), action: 'Área criada', user: 'Sistema' }
-                    ]
-                },
-                {
-                    id: 5,
-                    name: 'Coleta Zona Norte',
-                    type: 'Coleta Orgânicos e Rejeitos',
-                    status: 'Em Execução',
-                    scheduledDate: new Date(),
-                    completedDate: null,
-                    coordinates: [-23.2900, -51.1650],
-                    polygon: null,
-                    assignedTeam: 3,
-                    history: [
-                        { date: new Date(), action: 'Coleta iniciada', user: 'Equipe 3' }
-                    ]
-                },
-                {
-                    id: 6,
-                    name: 'PEV Centro',
-                    type: 'PEV\'s',
-                    status: 'Pendente',
-                    scheduledDate: null,
-                    completedDate: null,
-                    coordinates: [-23.3050, -51.1700],
-                    polygon: null,
-                    assignedTeam: null,
-                    history: [
-                        { date: new Date(Date.now() - 172800000), action: 'Área criada', user: 'Sistema' }
-                    ]
-                }
-            ],
+            services: [], // Será preenchido pelos dados do Supabase
             teams: [
                 {
                     id: 1,
@@ -832,10 +858,16 @@
          * Renderiza as áreas no mapa
          */
         function renderAreas() {
+            console.log('🗺️ Renderizando áreas no mapa...');
+            console.log('📊 Total de serviços:', db.services.length);
+            console.log('📋 Serviços:', db.services);
+            
             // Limpa camadas existentes
             Object.values(layerGroups).forEach(group => group.clearLayers());
             
             db.services.forEach(area => {
+                console.log('🔍 Processando área:', area.name, 'Tipo:', area.type, 'Coordenadas:', area.coordinates);
+                
                 let layer;
                 const color = getStatusColor(area.status);
                 
@@ -850,6 +882,7 @@
                     });
                 } else {
                     // Renderiza como marcador
+                    console.log('📍 Criando marcador para:', area.name, 'em', area.coordinates);
                     layer = L.marker(area.coordinates, {
                         icon: L.divIcon({
                             className: 'custom-marker',
@@ -877,14 +910,24 @@
                 layer.on('click', () => showAreaModal(area));
                 
                 // Adiciona à camada apropriada
-                if (area.type === 'Roçagem') {
+                if (area.type === 'Roçagem' || area.type === 'Roçagem Áreas Públicas') {
+                    console.log('🌿 Adicionando à camada de roçagem, lote:', area.lote);
                     if (area.lote === 1) {
                         layerGroups.rocagemLote1.addLayer(layer);
+                        console.log('✅ Adicionado ao rocagemLote1');
                     } else if (area.lote === 2) {
                         layerGroups.rocagemLote2.addLayer(layer);
+                        console.log('✅ Adicionado ao rocagemLote2');
+                    } else {
+                        // Se não tem lote definido, adiciona ao lote 1 por padrão
+                        layerGroups.rocagemLote1.addLayer(layer);
+                        console.log('✅ Adicionado ao rocagemLote1 (padrão)');
                     }
                 } else if (area.type === 'Jardins') {
                     layerGroups.jardins.addLayer(layer);
+                    console.log('✅ Adicionado à camada jardins');
+                } else {
+                    console.log('⚠️ Tipo não reconhecido:', area.type);
                 }
             });
         }
@@ -1263,12 +1306,28 @@
             // Inicializa o mapa
             initMap();
             
-            // Calcula cronograma inicial
-            calculateMowingSchedule();
-            
-            // Renderiza áreas e equipes
-            renderAreas();
-            renderTeams();
+            // Carrega dados do Supabase e inicializa o sistema
+            loadSupabaseData().then(success => {
+                if (success) {
+                    console.log('✅ Dados do Supabase carregados com sucesso');
+                } else {
+                    console.log('⚠️ Usando dados mock como fallback');
+                }
+                
+                // Calcula cronograma inicial
+                calculateMowingSchedule();
+                
+                // Renderiza áreas e equipes
+                renderAreas();
+                renderTeams();
+            }).catch(error => {
+                console.error('❌ Erro ao carregar dados, usando mock:', error);
+                
+                // Fallback para dados mock
+                calculateMowingSchedule();
+                renderAreas();
+                renderTeams();
+            });
             
             // Event listeners para sidebar
             document.getElementById('closeSidebar').addEventListener('click', function() {
