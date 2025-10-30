@@ -14,8 +14,16 @@
     <!-- Leaflet Draw CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
     
+    <!-- Google Fonts - Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     
     <style>
         :root {
@@ -203,6 +211,287 @@
         .status-proximos { color: #3b82f6; }
         .status-concluido { color: #166534; }
         .status-pendente { color: #6b7280; }
+        
+        /* Estilos personalizados para popups elegantes - TEMA ESCURO */
+        .leaflet-popup-content-wrapper {
+            background: rgba(0, 0, 0, 0.6) !important;
+            border-radius: 16px !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+            border: none !important;
+            padding: 0 !important;
+            min-width: 280px !important;
+        }
+        
+        .leaflet-popup-content {
+            margin: 0 !important;
+            padding: 0 !important;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        }
+        
+        .leaflet-popup-tip {
+            background: rgba(0, 0, 0, 0.6) !important;
+            border: none !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2) !important;
+        }
+        
+        .elegant-popup {
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+            color: #ffffff;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+        }
+        
+        .popup-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-top: 8px;
+        }
+        
+        .popup-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            box-shadow: 0 4px 12px rgba(0, 212, 255, 0.4);
+        }
+        
+        .popup-icon.mowing {
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+            box-shadow: 0 4px 12px rgba(78, 205, 196, 0.4);
+        }
+        
+        .popup-icon.garden {
+            background: linear-gradient(135deg, #a8e6cf, #7fcdcd);
+            box-shadow: 0 4px 12px rgba(168, 230, 207, 0.4);
+        }
+        
+        .popup-icon.cleaning {
+            background: linear-gradient(135deg, #ffd93d, #ff6b6b);
+            box-shadow: 0 4px 12px rgba(255, 217, 61, 0.4);
+        }
+        
+        .popup-icon.team {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .popup-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 0;
+            line-height: 1.2;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+        }
+        
+        .popup-subtitle {
+            font-size: 14px;
+            color: #b0b0b0;
+            margin: 0;
+            font-weight: 500;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+        }
+        
+        .popup-content {
+            display: grid;
+            gap: 12px;
+        }
+        
+        .popup-field {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.01);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            transition: all 0.2s ease;
+        }
+        
+        .popup-field:hover {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.08);
+            transform: translateY(-1px);
+        }
+        
+        .popup-field-icon {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+        
+        .popup-field-icon.type-icon {
+            color: #4ecdc4;
+        }
+        
+        .popup-field-icon.status-icon {
+            color: #ff6b6b;
+        }
+        
+        .popup-field-icon.calendar-icon {
+            color: #ffd93d;
+        }
+        
+        .popup-field-icon.area-icon {
+            color: #00d4ff;
+        }
+        
+        .popup-field-icon.lot-icon {
+            color: #a8e6cf;
+        }
+        
+        .popup-field-icon.team-icon {
+            color: #667eea;
+        }
+        
+        .popup-field-icon.specialty-icon {
+            color: #ff9ff3;
+        }
+        
+        .popup-field-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #b0b0b0;
+            min-width: 60px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+        }
+        
+        .popup-field-value {
+            font-size: 13px;
+            color: #ffffff;
+            font-weight: 500;
+            flex: 1;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+        
+        .status-badge.critico {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ff6b6b;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        .status-badge.execucao {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ecdc4;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+        
+        .status-badge.pendente {
+            background: rgba(107, 114, 128, 0.2);
+            color: #b0b0b0;
+            border: 1px solid rgba(107, 114, 128, 0.3);
+        }
+        
+        .status-badge.hoje {
+            background: rgba(234, 179, 8, 0.2);
+            color: #ffd93d;
+            border: 1px solid rgba(234, 179, 8, 0.3);
+        }
+        
+        .status-badge.ativo {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ecdc4;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+        
+        .status-badge.idle {
+            background: rgba(107, 114, 128, 0.2);
+            color: #b0b0b0;
+            border: 1px solid rgba(107, 114, 128, 0.3);
+        }
+        
+        .popup-history {
+            margin-top: 8px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border-left: 4px solid #00d4ff;
+        }
+        
+        .popup-history-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #b0b0b0;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .popup-history-content {
+            font-size: 13px;
+            color: #d0d0d0;
+            line-height: 1.4;
+        }
+        
+        /* Estilos para tooltips personalizados */
+        .custom-tooltip {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+        }
+        
+        .custom-tooltip .leaflet-tooltip-content {
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        
+        /* Animações suaves */
+        .leaflet-popup {
+            animation: popupFadeIn 0.3s ease-out;
+        }
+        
+        @keyframes popupFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        
+        /* Hover effects para marcadores - REMOVIDO para evitar "fuga" dos pontos */
+        .custom-marker {
+            transition: opacity 0.2s ease !important;
+            cursor: pointer !important;
+        }
+        
+        .custom-marker:hover {
+            opacity: 0.8 !important;
+        }
+        
+        .team-marker {
+            transition: opacity 0.2s ease !important;
+            cursor: pointer !important;
+        }
+        
+        .team-marker:hover {
+            opacity: 0.8 !important;
+        }
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
@@ -893,18 +1182,119 @@
                     });
                 }
                 
-                // Adiciona popup
+                // Adiciona popup elegante
+                const getAreaIcon = (type) => {
+                    if (type === 'Roçagem' || type === 'Roçagem Áreas Públicas') {
+                        return '<i data-lucide="scissors"></i>';
+                    } else if (type === 'Jardins') {
+                        return '<i data-lucide="flower"></i>';
+                    } else if (type === 'Limpeza') {
+                        return '<i data-lucide="broom"></i>';
+                    }
+                    return '<i data-lucide="map-pin"></i>';
+                };
+                
+                const getAreaIconClass = (type) => {
+                    if (type === 'Roçagem' || type === 'Roçagem Áreas Públicas') {
+                        return 'mowing';
+                    } else if (type === 'Jardins') {
+                        return 'garden';
+                    } else if (type === 'Limpeza') {
+                        return 'cleaning';
+                    }
+                    return '';
+                };
+                
+                const getStatusBadge = (status) => {
+                    const statusClass = status.toLowerCase().replace(/\s+/g, '-').replace('ção', 'cao');
+                    return `<span class="status-badge ${statusClass}">${status}</span>`;
+                };
+                
                 const popupContent = `
-                    <div class="p-2">
-                        <h3 class="font-bold">${area.name}</h3>
-                        <p class="text-sm">Tipo: ${area.type}</p>
-                        <p class="text-sm">Status: <span class="status-${area.status.toLowerCase().replace(/\s+/g, '-')}">${area.status}</span></p>
-                        ${area.scheduledDate ? `<p class="text-sm">Agendado: ${area.scheduledDate.toLocaleDateString('pt-BR')}</p>` : ''}
-                        ${area.metragem_m2 ? `<p class="text-sm">Área: ${area.metragem_m2.toLocaleString('pt-BR')} m²</p>` : ''}
+                    <div class="elegant-popup">
+                        <div class="popup-header">
+                            <div class="popup-icon ${getAreaIconClass(area.type)}">
+                                ${getAreaIcon(area.type)}
+                            </div>
+                            <div>
+                                <h3 class="popup-title">${area.endereco || area.name}</h3>
+                                <p class="popup-subtitle">${area.bairro || area.type}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="popup-content">
+                            <div class="popup-field">
+                                <i data-lucide="tag" class="popup-field-icon type-icon"></i>
+                                <span class="popup-field-label">Tipo:</span>
+                                <span class="popup-field-value">${area.tipo || area.type}</span>
+                            </div>
+                            
+                            <div class="popup-field">
+                                <i data-lucide="activity" class="popup-field-icon status-icon"></i>
+                                <span class="popup-field-label">Status:</span>
+                                <span class="popup-field-value">${getStatusBadge(area.status)}</span>
+                            </div>
+                            
+                            ${area.scheduledDate ? `
+                            <div class="popup-field">
+                                <i data-lucide="calendar" class="popup-field-icon calendar-icon"></i>
+                                <span class="popup-field-label">Agendado:</span>
+                                <span class="popup-field-value">${area.scheduledDate.toLocaleDateString('pt-BR')}</span>
+                            </div>
+                            ` : ''}
+                            
+                            ${area.metragem_m2 ? `
+                            <div class="popup-field">
+                                <i data-lucide="ruler" class="popup-field-icon area-icon"></i>
+                                <span class="popup-field-label">Área:</span>
+                                <span class="popup-field-value">${area.metragem_m2.toLocaleString('pt-BR')} m²</span>
+                            </div>
+                            ` : ''}
+                            
+                            ${area.lote ? `
+                            <div class="popup-field">
+                                <i data-lucide="package" class="popup-field-icon lot-icon"></i>
+                                <span class="popup-field-label">Lote:</span>
+                                <span class="popup-field-value">${area.lote}</span>
+                            </div>
+                            ` : ''}
+                        </div>
+                        
+                        <div class="popup-history">
+                            <div class="popup-history-title">Histórico</div>
+                            <div class="popup-history-content">
+                                ${area.historico || 'Área cadastrada no sistema de gestão de operações públicas.'}
+                            </div>
+                        </div>
                     </div>
                 `;
                 
                 layer.bindPopup(popupContent);
+                
+                // Adiciona tooltip para hover
+                const tooltipContent = `
+                    <div style="background: rgba(30, 30, 35, 0.95); color: white; padding: 8px 12px; border-radius: 8px; font-family: 'Poppins', sans-serif; font-size: 12px; border: 1px solid rgba(255, 255, 255, 0.1); line-height: 1.6;">
+                        <div style="font-weight: bold; margin-bottom: 4px;">${area.endereco || area.name}</div>
+                        <div style="color: #4ecdc4; margin-bottom: 4px;">Roçagem de Áreas Públicas</div>
+                        <div style="color: #ffea00; font-weight: normal; margin-bottom: 4px;">Previsão: ${area.scheduledDate ? new Date(area.scheduledDate).toLocaleDateString('pt-BR') : 'A definir'}</div>
+                        <div style="color: #4fc3f7; font-weight: normal;">Última roçagem: ${area.lastServiceDate ? new Date(area.lastServiceDate).toLocaleDateString('pt-BR') : 'Não registrada'}</div>
+                    </div>
+                `;
+                layer.bindTooltip(tooltipContent, {
+                    permanent: false,
+                    direction: 'top',
+                    offset: [0, -10],
+                    className: 'custom-tooltip'
+                });
+                
+                // Reinicializa ícones quando popup abre
+                layer.on('popupopen', () => {
+                    setTimeout(() => {
+                        if (typeof lucide !== 'undefined') {
+                            lucide.createIcons();
+                        }
+                    }, 100);
+                });
                 
                 // Event listener para clique
                 layer.on('click', () => showAreaModal(area));
@@ -953,17 +1343,94 @@
                 
                 const specialtiesText = team.specialties ? team.specialties.join(', ') : 'Não especificado';
                 
+                const getTeamIcon = (type) => {
+                    if (type === 'Limpeza Urbana') {
+                        return '<i data-lucide="broom"></i>';
+                    } else if (type === 'Resíduos') {
+                        return '<i data-lucide="trash-2"></i>';
+                    }
+                    return '<i data-lucide="users"></i>';
+                };
+                
+                const getTeamStatusBadge = (status) => {
+                    const statusClass = status.toLowerCase().replace(/\s+/g, '-');
+                    return `<span class="status-badge ${statusClass}">${status}</span>`;
+                };
+                
                 const popupContent = `
-                    <div class="p-2">
-                        <h3 class="font-bold">${team.name}</h3>
-                        <p class="text-sm">Tipo: ${team.type}</p>
-                        <p class="text-sm">Status: ${team.status}</p>
-                        <p class="text-sm">Membros: ${team.members}</p>
-                        <p class="text-sm">Especialidades: ${specialtiesText}</p>
+                    <div class="elegant-popup">
+                        <div class="popup-header">
+                            <div class="popup-icon team">
+                                ${getTeamIcon(team.type)}
+                            </div>
+                            <div>
+                                <h3 class="popup-title">${team.name}</h3>
+                                <p class="popup-subtitle">Equipe de ${team.type}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="popup-content">
+                            <div class="popup-field">
+                                <i data-lucide="briefcase" class="popup-field-icon type-icon"></i>
+                                <span class="popup-field-label">Tipo:</span>
+                                <span class="popup-field-value">${team.type}</span>
+                            </div>
+                            
+                            <div class="popup-field">
+                                <i data-lucide="activity" class="popup-field-icon status-icon"></i>
+                                <span class="popup-field-label">Status:</span>
+                                <span class="popup-field-value">${getTeamStatusBadge(team.status)}</span>
+                            </div>
+                            
+                            <div class="popup-field">
+                                <i data-lucide="users" class="popup-field-icon team-icon"></i>
+                                <span class="popup-field-label">Membros:</span>
+                                <span class="popup-field-value">${team.members}</span>
+                            </div>
+                            
+                            <div class="popup-field">
+                                <i data-lucide="star" class="popup-field-icon specialty-icon"></i>
+                                <span class="popup-field-label">Especialidades:</span>
+                                <span class="popup-field-value">${specialtiesText}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="popup-history">
+                            <div class="popup-history-title">Histórico</div>
+                            <div class="popup-history-content">
+                                Equipe ativa no sistema de gestão operacional. Status atual: ${team.status}.
+                            </div>
+                        </div>
                     </div>
                 `;
                 
                 marker.bindPopup(popupContent);
+                
+                // Adiciona tooltip para hover
+                const teamTooltipContent = `
+                    <div style="background: rgba(30, 30, 35, 0.95); color: white; padding: 8px 12px; border-radius: 8px; font-family: 'Poppins', sans-serif; font-size: 12px; border: 1px solid rgba(255, 255, 255, 0.1); line-height: 1.6;">
+                        <div style="font-weight: bold; margin-bottom: 4px;">${team.name}</div>
+                        <div style="color: #4ecdc4; margin-bottom: 4px;">Roçagem de Áreas Públicas</div>
+                        <div style="color: #ffea00; font-weight: normal; margin-bottom: 4px;">Previsão: A definir</div>
+                        <div style="color: #4fc3f7; font-weight: normal;">Última roçagem: Não registrada</div>
+                    </div>
+                `;
+                marker.bindTooltip(teamTooltipContent, {
+                    permanent: false,
+                    direction: 'top',
+                    offset: [0, -15],
+                    className: 'custom-tooltip'
+                });
+                
+                // Reinicializa ícones quando popup abre
+                marker.on('popupopen', () => {
+                    setTimeout(() => {
+                        if (typeof lucide !== 'undefined') {
+                            lucide.createIcons();
+                        }
+                    }, 100);
+                });
+                
                 layerGroups.equipes.addLayer(marker);
             });
         }
@@ -1435,6 +1902,22 @@
             document.querySelector('.modal-backdrop').addEventListener('click', closeModal);
             
             console.log('Dashboard CMTU-LD inicializado com sucesso!');
+            
+            // Inicializa os ícones Lucide
+            setTimeout(() => {
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                    console.log('✨ Ícones Lucide inicializados');
+                } else {
+                    console.warn('⚠️ Lucide não carregado ainda, tentando novamente...');
+                    setTimeout(() => {
+                        if (typeof lucide !== 'undefined') {
+                            lucide.createIcons();
+                            console.log('✨ Ícones Lucide inicializados (segunda tentativa)');
+                        }
+                    }, 1000);
+                }
+            }, 500);
         });
         
         // Garante que a sidebar permaneça visível após carregamento completo

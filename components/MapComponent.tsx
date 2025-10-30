@@ -127,14 +127,36 @@ const MapComponent: React.FC<MapComponentProps> = ({
                                         click: (e) => { L.DomEvent.stop(e); (e.target as any).openTooltip(); }
                                     }}
                                 >
-                                    <Tooltip sticky>
-                                        <div>
-                                            <p className="font-bold">{area.endereco}</p>
-                                            <p>Status: {area.status}</p>
-                                            {area.scheduledDate && <p>Agendado: {new Date(area.scheduledDate).toLocaleDateString('pt-BR')}</p>}
-                                            <p className="italic text-gray-400 mt-1">Duplo clique para mais detalhes</p>
+                                    <Tooltip
+                                    permanent={false}
+                                    direction="top"
+                                    offset={[0, -15]}
+                                    className="custom-tooltip"
+                                >
+                                    <div style={{
+                                        background: 'rgba(30, 30, 35, 0.95)',
+                                        color: 'white',
+                                        padding: '8px 12px',
+                                        borderRadius: '8px',
+                                        fontFamily: "'Poppins', sans-serif",
+                                        fontSize: '12px',
+                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                        lineHeight: '1.6'
+                                    }}>
+                                        <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+                                            {area.endereco}
                                         </div>
-                                    </Tooltip>
+                                        <div style={{ color: '#4ecdc4', marginBottom: '4px' }}>
+                                            Roçagem de Áreas Públicas
+                                        </div>
+                                        <div style={{ color: '#ffea00', fontWeight: 'normal', marginBottom: '4px' }}>
+                                            Previsão: {area.scheduledDate ? new Date(area.scheduledDate).toLocaleDateString('pt-BR') : 'A definir'}
+                                        </div>
+                                        <div style={{ color: '#4fc3f7', fontWeight: 'normal' }}>
+                                            Última roçagem: {(area as any).lastServiceDate ? new Date((area as any).lastServiceDate).toLocaleDateString('pt-BR') : 'Não registrada'}
+                                        </div>
+                                    </div>
+                                </Tooltip>
                                 </Polygon>
                             );
                         }
@@ -157,12 +179,34 @@ const MapComponent: React.FC<MapComponentProps> = ({
                                     }
                                 }}
                             >
-                                <Tooltip sticky>
-                                     <div>
-                                        <p className="font-bold">{area.endereco}</p>
-                                        <p>Tipo: {area.tipo}</p>
-                                        {area.status && <p>Status: {area.status}</p>}
-                                        <p className="italic text-gray-400 mt-1">Duplo clique para mais detalhes</p>
+                                <Tooltip
+                                    permanent={false}
+                                    direction="top"
+                                    offset={[0, -15]}
+                                    className="custom-tooltip"
+                                >
+                                    <div style={{
+                                        background: 'rgba(30, 30, 35, 0.95)',
+                                        color: 'white',
+                                        padding: '8px 12px',
+                                        borderRadius: '8px',
+                                        fontFamily: "'Poppins', sans-serif",
+                                        fontSize: '12px',
+                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                        lineHeight: '1.6'
+                                    }}>
+                                        <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+                                            {area.endereco}
+                                        </div>
+                                        <div style={{ color: '#4ecdc4', marginBottom: '4px' }}>
+                                            Roçagem de Áreas Públicas
+                                        </div>
+                                        <div style={{ color: '#ffea00', fontWeight: 'normal', marginBottom: '4px' }}>
+                                            Previsão: {area.scheduledDate ? new Date(area.scheduledDate).toLocaleDateString('pt-BR') : 'A definir'}
+                                        </div>
+                                        <div style={{ color: '#4fc3f7', fontWeight: 'normal' }}>
+                                            Última roçagem: {(area as any).lastServiceDate ? new Date((area as any).lastServiceDate).toLocaleDateString('pt-BR') : 'Não registrada'}
+                                        </div>
                                     </div>
                                 </Tooltip>
                             </Marker>

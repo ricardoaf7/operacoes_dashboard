@@ -21,6 +21,7 @@ export interface Area {
     history?: HistoryEntry[];
     polygon?: LatLngTuple[] | null;
     scheduledDate?: Date | null;
+    lastServiceDate?: Date | null;
     servico?: string;
 }
 
