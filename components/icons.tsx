@@ -65,3 +65,10 @@ export const AdoptedAreaIcon = createIcon(`
       <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13.25a.75.75 0 00-1.5 0v.5a.75.75 0 001.5 0v-.5z" />
     </svg>
 `);
+
+export const BroomIcon = createIcon(`
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-400 drop-shadow-lg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12h18l-9 9-9-9Z"></path>
+        <path d="M12 3v9"></path>
+    </svg>
+`);

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Drag Functionality</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #map { height: 500px; width: 100%; }
+        body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+    </style>
+</head>
+<body>
+    <h1>Teste de Arrastar Marcador</h1>
+    <div id="map"></div>
+    <div id="log" style="margin-top: 20px; padding: 10px; background: #f0f0f0; border-radius: 5px;">
+        <h3>Log de Eventos:</h3>
+        <div id="events"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Inicializar o mapa
+        const map = L.map('map').setView([-23.31, -51.16], 13);
+        
+        // Adicionar tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Função para log
+        function logEvent(message) {
+            const eventsDiv = document.getElementById('events');
+            const p = document.createElement('p');
+            p.textContent = new Date().toLocaleTimeString() + ': ' + message;
+            eventsDiv.appendChild(p);
+            console.log(message);
+        }
+
+        // Criar marcador arrastável
+        const marker = L.marker([-23.31, -51.16], {
+            draggable: true
+        }).addTo(map);
+
+        // Eventos do marcador
+        marker.on('dragstart', function(e) {
+            logEvent('Drag started at: ' + e.target.getLatLng());
+        });
+
+        marker.on('drag', function(e) {
+            logEvent('Dragging to: ' + e.target.getLatLng());
+        });
+
+        marker.on('dragend', function(e) {
+            const newPos = e.target.getLatLng();
+            logEvent('Drag ended at: ' + newPos);
+            alert('Marcador movido para: ' + newPos.lat.toFixed(6) + ', ' + newPos.lng.toFixed(6));
+        });
+
+        logEvent('Mapa inicializado. Tente arrastar o marcador!');
+    </script>
+</body>
+</html>

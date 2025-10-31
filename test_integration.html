@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Integração Supabase</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Teste de Integração com Supabase</h1>
+    <div id="status">Carregando...</div>
+    <div id="data"></div>
+
+    <script>
+        const SUPABASE_CONFIG = {
+            url: 'https://rwfolmphjmuyqocetitv.supabase.co',
+            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3Zm9sbXBoam11eXFvY2V0aXR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2NjA2MTcsImV4cCI6MjA3NzIzNjYxN30.O1ll_msQWobgghQAg0TA5s4Xl7ZrOJNYKOXJ0zDS8B8'
+        };
+
+        const supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+
+        async function testConnection() {
+            const statusDiv = document.getElementById('status');
+            const dataDiv = document.getElementById('data');
+
+            try {
+                statusDiv.innerHTML = '<span class="info">🔄 Testando conexão com Supabase...</span>';
+
+                const { data, error } = await supabase
+                    .from('rocagem_areas_publicas')
+                    .select('*')
+                    .limit(3);
+
+                if (error) {
+                    statusDiv.innerHTML = `<span class="error">❌ Erro: ${error.message}</span>`;
+                    console.error('Erro:', error);
+                } else {
+                    statusDiv.innerHTML = `<span class="success">✅ Conexão bem-sucedida! ${data.length} registros encontrados</span>`;
+                    dataDiv.innerHTML = `
+                        <h3>Primeiros 3 registros:</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<span class="error">❌ Erro geral: ${error.message}</span>`;
+                console.error('Erro geral:', error);
+            }
+        }
+
+        // Executar teste quando a página carregar
+        window.addEventListener('DOMContentLoaded', testConnection);
+    </script>
+</body>
+</html>

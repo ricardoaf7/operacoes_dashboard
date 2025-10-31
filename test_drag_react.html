@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test React Leaflet Drag</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/react@19.2.0/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@19.2.0/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/react-leaflet@5.0.0/lib/index.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+        #map-container { height: 500px; width: 100%; }
+        #log { margin-top: 20px; padding: 10px; background: #f0f0f0; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Teste React Leaflet Drag</h1>
+    <div id="root"></div>
+    <div id="log">
+        <h3>Log de Eventos:</h3>
+        <div id="events"></div>
+    </div>
+
+    <script type="text/babel">
+        // Fix Leaflet default icon issue
+        delete L.Icon.Default.prototype._getIconUrl;
+        L.Icon.Default.mergeOptions({
+            iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+            iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+            shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
+        });
+
+        const { MapContainer, TileLayer, Marker } = ReactLeaflet;
+
+        function logEvent(message) {
+            const eventsDiv = document.getElementById('events');
+            const p = document.createElement('p');
+            p.textContent = new Date().toLocaleTimeString() + ': ' + message;
+            eventsDiv.appendChild(p);
+            console.log(message);
+        }
+
+        function TestDragMap() {
+            const handleDragStart = () => {
+                logEvent('Drag started');
+            };
+
+            const handleDrag = () => {
+                logEvent('Dragging...');
+            };
+
+            const handleDragEnd = (e) => {
+                const marker = e.target;
+                const position = marker.getLatLng();
+                const message = `Drag ended at: ${position.lat.toFixed(6)}, ${position.lng.toFixed(6)}`;
+                logEvent(message);
+                alert(message);
+            };
+
+            return React.createElement(
+                'div',
+                { id: 'map-container' },
+                React.createElement(
+                    MapContainer,
+                    {
+                        center: [-23.31, -51.16],
+                        zoom: 13,
+                        style: { height: '100%', width: '100%' }
+                    },
+                    React.createElement(TileLayer, {
+                        url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        attribution: '© OpenStreetMap contributors'
+                    }),
+                    React.createElement(Marker, {
+                        position: [-23.31, -51.16],
+                        draggable: true,
+                        eventHandlers: {
+                            dragstart: handleDragStart,
+                            drag: handleDrag,
+                            dragend: handleDragEnd
+                        }
+                    })
+                )
+            );
+        }
+
+        ReactDOM.render(React.createElement(TestDragMap), document.getElementById('root'));
+        logEvent('React Leaflet map initialized. Try dragging the marker!');
+    </script>
+</body>
+</html>

@@ -3,6 +3,7 @@ import { db as initialDb, APP_CONFIG as initialAppConfig } from '../data';
 import { AppConfig, Database, ServiceId } from '../types';
 import { produce } from 'immer';
 import { LatLng } from 'leaflet';
+import { updateAreaCoordinates } from '../src/lib/supabase';
 
 const useAppData = () => {
     const [db, setDb] = useState<Database>(initialDb);
@@ -113,7 +114,8 @@ const useAppData = () => {
         }));
     }, []);
 
-    const updateAreaLocation = useCallback((areaId: number, serviceId: ServiceId, latlng: LatLng) => {
+    const updateAreaLocation = useCallback(async (areaId: number, serviceId: ServiceId, latlng: LatLng) => {
+        // Atualizar estado local
         setDb(produce(draftDb => {
             const service = draftDb.services.find(s => s.id === serviceId);
             if (!service) return;
@@ -123,6 +125,17 @@ const useAppData = () => {
                 area.lng = latlng.lng;
             }
         }));
+
+        // Atualizar no Supabase se for uma área de roçagem
+        if (serviceId === 'rocagem') {
+            try {
+                await updateAreaCoordinates(areaId, latlng.lat, latlng.lng);
+                console.log(`✅ Localização da área ${areaId} atualizada com sucesso`);
+            } catch (error) {
+                console.error(`❌ Erro ao atualizar localização da área ${areaId}:`, error);
+                // Aqui você pode adicionar uma notificação de erro para o usuário
+            }
+        }
     }, []);
 
     const addArea = useCallback((serviceId: ServiceId, details: { endereco: string, tipo: string }, latlng: LatLng) => {

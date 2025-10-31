@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Simples - Mapa com Supabase</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+        #map { height: 500px; width: 100%; border: 1px solid #ccc; }
+        #info { margin-bottom: 20px; padding: 10px; background: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <h1>Teste Simples - Mapa com Dados do Supabase</h1>
+    <div id="info">Carregando...</div>
+    <div id="map"></div>
+
+    <script>
+        // Configuração do Supabase
+        const SUPABASE_CONFIG = {
+            url: 'https://rwfolmphjmuyqocetitv.supabase.co',
+            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3Zm9sbXBoam11eXFvY2V0aXR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2NjA2MTcsImV4cCI6MjA3NzIzNjYxN30.O1ll_msQWobgghQAg0TA5s4Xl7ZrOJNYKOXJ0zDS8B8'
+        };
+
+        // Inicializar cliente Supabase
+        const supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+
+        // Inicializar mapa
+        const map = L.map('map').setView([-23.3045, -51.1696], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Função para carregar e mostrar dados
+        async function loadAndShowData() {
+            try {
+                document.getElementById('info').innerHTML = '🔄 Carregando dados do Supabase...';
+                
+                const { data, error } = await supabase
+                    .from('rocagem_areas_publicas')
+                    .select('*')
+                    .order('id', { ascending: true });
+
+                if (error) {
+                    console.error('❌ Erro ao carregar dados:', error);
+                    document.getElementById('info').innerHTML = '❌ Erro: ' + error.message;
+                    return;
+                }
+
+                console.log('✅ Dados carregados:', data);
+                document.getElementById('info').innerHTML = `✅ ${data.length} áreas carregadas do Supabase`;
+                
+                // Adicionar marcadores no mapa
+                data.forEach((area, index) => {
+                    if (area.latitude && area.longitude) {
+                        const marker = L.marker([area.latitude, area.longitude])
+                            .addTo(map)
+                            .bindPopup(`
+                                <strong>${area.endereco} - ${area.bairro}</strong><br>
+                                Status: ${area.status}<br>
+                                Lote: ${area.lote}<br>
+                                Área: ${area.metragem_m2} m²
+                            `);
+                        
+                        console.log(`📍 Marcador ${index + 1}: ${area.endereco} - ${area.bairro} [${area.latitude}, ${area.longitude}]`);
+                    }
+                });
+                
+            } catch (error) {
+                console.error('❌ Erro geral:', error);
+                document.getElementById('info').innerHTML = '❌ Erro geral: ' + error.message;
+            }
+        }
+
+        // Carregar dados quando a página carregar
+        window.addEventListener('load', () => {
+            loadAndShowData();
+        });
+    </script>
+</body>
+</html>

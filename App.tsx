@@ -80,6 +80,8 @@ const App: React.FC = () => {
         setAddMode(null);
     }, [addArea, newPointCoords]);
 
+    console.log('🏠 App.tsx renderizando - db:', db, 'MapComponent será renderizado');
+    
     return (
         <div className="flex h-screen bg-gray-900 text-white font-sans">
             <Sidebar
@@ -101,6 +103,7 @@ const App: React.FC = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
                     </svg>
                 </button>
+                {console.log('🗺️ Prestes a renderizar MapComponent com props:', { db: !!db, visibleLayers, addMode })}
                 <MapComponent
                     db={db}
                     visibleLayers={visibleLayers}

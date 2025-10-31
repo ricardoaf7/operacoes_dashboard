@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Polygon, Tooltip, useMapEvents } from 'react-leaflet';
+import React, { useEffect, useRef, useState } from 'react';
+import { MapContainer, TileLayer, Marker, Polygon, Tooltip, useMapEvents, useMap } from 'react-leaflet';
 import L, { LatLng, LatLngTuple } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -73,14 +73,86 @@ const MapComponent: React.FC<MapComponentProps> = ({
     db,
     visibleLayers,
     onAreaSelect,
+    onUpdatePolygon,
     onAreaLocationUpdate,
     addMode,
-    onMapClick,
+    onMapClick
 }) => {
+    console.log('🚀 MapComponent INICIADO - Props recebidas:', { 
+        dbServices: db?.services?.length, 
+        visibleLayers, 
+        addMode 
+    });
+    const mapRef = useRef<L.Map | null>(null);
+
+    // Componente interno para controlar o drag do mapa
+    const MapController = () => {
+        const map = useMap();
+        
+        useEffect(() => {
+            mapRef.current = map;
+        }, [map]);
+
+        return null;
+    };
+
+    // Estado para controlar qual marcador está sendo arrastado
+    const [draggedMarker, setDraggedMarker] = useState<{
+        areaId: number;
+        serviceId: ServiceId;
+        areaName: string;
+        newPosition: LatLng;
+    } | null>(null);
+
+    // DEBUG: Adicionar marcador com Leaflet puro após o mapa carregar
+    useEffect(() => {
+        // Aguardar um pouco para o mapa carregar completamente
+        const timer = setTimeout(() => {
+            if (mapRef.current) {
+                console.log('🔍 Adicionando marcador com Leaflet puro...');
+                const testMarker = L.marker([-23.3045, -51.1696])
+                    .addTo(mapRef.current)
+                    .bindPopup('TESTE LEAFLET PURO - Este marcador foi criado com L.marker()');
+                console.log('✅ Marcador Leaflet puro adicionado:', testMarker);
+            }
+        }, 2000);
+        
+        return () => clearTimeout(timer);
+    }, []);
+
+    // Função simples para lidar com o drag
+    const handleDragStart = (event: any) => {
+        // Desabilita o drag do mapa quando começar a arrastar o marcador
+        if (mapRef.current) {
+            mapRef.current.dragging.disable();
+        }
+    };
+
+    const handleDragEnd = (area: Area, serviceId: ServiceId, event: any) => {
+        // Reabilita o drag do mapa
+        if (mapRef.current) {
+            mapRef.current.dragging.enable();
+        }
+
+        const newPosition = event.target.getLatLng();
+        
+        // Confirma imediatamente a mudança
+        if (window.confirm(`Mover "${area.name}" para a nova localização?`)) {
+            onAreaLocationUpdate(area.id, serviceId, newPosition);
+        } else {
+            // Reverte a posição do marcador
+            event.target.setLatLng([area.lat, area.lng]);
+        }
+    };
+
     const center: LatLngTuple = [-23.31, -51.16]; // Center of Londrina, PR
 
+    console.log('🗺️ MapComponent PRONTO PARA RENDERIZAR - Center:', center);
+
     return (
+        <>
         <MapContainer center={center} zoom={13} style={{ height: '100%', width: '100%', backgroundColor: '#1a202c' }}>
+            <MapController />
             <TileLayer
                 url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
@@ -88,7 +160,16 @@ const MapComponent: React.FC<MapComponentProps> = ({
 
             <MapEventsHandler onMapClick={onMapClick} addMode={addMode} />
 
-            {/* Services */}
+            {/* DEBUG: Verificar se este componente está sendo renderizado */}
+            {console.log('🔍 MapComponent renderizando - Marcador de teste deve aparecer!')}
+            
+            {/* Marcador de teste SUPER SIMPLES - LONDRINA! */}
+            <Marker 
+                position={[-23.3045, -51.1696]} 
+                draggable={true}
+            />
+
+            {/* Render service areas */}
             {db.services.map(service => (
                 <React.Fragment key={service.id}>
                     {service.areas.map(area => {
@@ -113,8 +194,6 @@ const MapComponent: React.FC<MapComponentProps> = ({
                         }
                         
                         if (!isVisible) return null;
-                        
-                        const markerRef = useRef<L.Marker>(null);
 
                         if (service.id === 'rocagem' && area.polygon) {
                             return (
@@ -165,18 +244,13 @@ const MapComponent: React.FC<MapComponentProps> = ({
                             <Marker
                                 key={`${service.id}-${area.id}`}
                                 position={position}
-                                icon={icon}
+                                // icon={icon} // Temporariamente removido para teste
                                 draggable={true}
-                                ref={markerRef}
                                 eventHandlers={{
                                     dblclick: () => onAreaSelect(area, service.id),
                                     click: (e) => { (e.target as any).openTooltip(); },
-                                    dragend: () => {
-                                        const marker = markerRef.current;
-                                        if (marker != null) {
-                                            onAreaLocationUpdate(area.id, service.id, marker.getLatLng());
-                                        }
-                                    }
+                                    dragstart: handleDragStart,
+                                    dragend: (e) => handleDragEnd(area, service.id, e)
                                 }}
                             >
                                 <Tooltip
@@ -243,6 +317,8 @@ const MapComponent: React.FC<MapComponentProps> = ({
                 );
             })}
         </MapContainer>
+        
+    </>
     );
 };
 

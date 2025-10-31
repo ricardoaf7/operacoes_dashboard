@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CMTU-LD - Dashboard Operacional</title>
     
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS Local -->
+    <link rel="stylesheet" href="/src/style.css">
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -552,7 +552,7 @@
                                 <span class="text-sm text-gray-200">Manutenção Lagos</span>
                             </div>
                             <div class="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="broom" class="lucide lucide-broom w-4 h-4 text-green-400"><path d="M3 12h18l-9 9-9-9Z"></path><path d="M12 3v9"></path></svg>
+                                <i data-lucide="brush" class="w-4 h-4 text-green-400"></i>
                                 <span class="text-sm text-gray-200">Varrição</span>
                             </div>
                             <div class="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
@@ -1144,6 +1144,45 @@
         }
         
         /**
+         * Atualiza as estatísticas do dashboard
+         */
+        function updateDashboardStats() {
+            console.log('📊 Atualizando estatísticas do dashboard...');
+            
+            // Calcula estatísticas das áreas
+            const totalAreas = db.services.length;
+            const activeTeams = db.teams.filter(team => team.status === 'Ativo').length;
+            const pendingTasks = db.services.filter(service => service.status === 'Pendente').length;
+            const completedTasks = db.services.filter(service => service.status === 'Concluído').length;
+            
+            // Atualiza os elementos HTML
+            const totalAreasElement = document.getElementById('totalAreas');
+            const activeTeamsElement = document.getElementById('activeTeams');
+            const pendingTasksElement = document.getElementById('pendingTasks');
+            const completedTasksElement = document.getElementById('completedTasks');
+            
+            if (totalAreasElement) {
+                totalAreasElement.textContent = totalAreas;
+                console.log('✅ Total de áreas atualizado:', totalAreas);
+            }
+            
+            if (activeTeamsElement) {
+                activeTeamsElement.textContent = activeTeams;
+                console.log('✅ Equipes ativas atualizadas:', activeTeams);
+            }
+            
+            if (pendingTasksElement) {
+                pendingTasksElement.textContent = pendingTasks;
+                console.log('✅ Tarefas pendentes atualizadas:', pendingTasks);
+            }
+            
+            if (completedTasksElement) {
+                completedTasksElement.textContent = completedTasks;
+                console.log('✅ Tarefas concluídas atualizadas:', completedTasks);
+            }
+        }
+
+        /**
          * Renderiza as áreas no mapa
          */
         function renderAreas() {
@@ -1173,6 +1212,7 @@
                     // Renderiza como marcador
                     console.log('📍 Criando marcador para:', area.name, 'em', area.coordinates);
                     layer = L.marker(area.coordinates, {
+                        draggable: true, // Permite arrastar o marcador
                         icon: L.divIcon({
                             className: 'custom-marker',
                             html: `<div style="background-color: ${color}; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; ${area.status === 'Em Execução' ? 'animation: pulse 2s infinite;' : ''}"></div>`,
@@ -1189,7 +1229,7 @@
                     } else if (type === 'Jardins') {
                         return '<i data-lucide="flower"></i>';
                     } else if (type === 'Limpeza') {
-                        return '<i data-lucide="broom"></i>';
+                        return '<i data-lucide="brush"></i>';
                     }
                     return '<i data-lucide="map-pin"></i>';
                 };
@@ -1299,6 +1339,23 @@
                 // Event listener para clique
                 layer.on('click', () => showAreaModal(area));
                 
+                // Event listener para quando o marcador for arrastado
+                layer.on('dragend', function(e) {
+                    const marker = e.target;
+                    const newPosition = marker.getLatLng();
+                    
+                    console.log('📍 Marcador movido:', area.name);
+                    console.log('🔄 Nova posição:', newPosition.lat, newPosition.lng);
+                    
+                    // Atualiza as coordenadas da área
+                    area.coordinates = [newPosition.lat, newPosition.lng];
+                    
+                    // Aqui você pode adicionar código para salvar no banco de dados
+                    // Por exemplo: updateAreaCoordinates(area.id, newPosition.lat, newPosition.lng);
+                    
+                    console.log('✅ Coordenadas atualizadas para:', area.name);
+                });
+                
                 // Adiciona à camada apropriada
                 if (area.type === 'Roçagem' || area.type === 'Roçagem Áreas Públicas') {
                     console.log('🌿 Adicionando à camada de roçagem, lote:', area.lote);
@@ -1320,6 +1377,9 @@
                     console.log('⚠️ Tipo não reconhecido:', area.type);
                 }
             });
+            
+            // Atualiza as estatísticas do dashboard
+            updateDashboardStats();
         }
         
         /**
@@ -1333,6 +1393,7 @@
                 const color = team.type === 'Limpeza Urbana' ? '#3b82f6' : '#10b981';
                 
                 const marker = L.marker(team.coordinates, {
+                    draggable: true, // Permite arrastar o marcador da equipe
                     icon: L.divIcon({
                         className: 'team-marker',
                         html: `<div style="background-color: ${color}; opacity: ${opacity}; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 12px;">${team.members}</div>`,
@@ -1345,7 +1406,7 @@
                 
                 const getTeamIcon = (type) => {
                     if (type === 'Limpeza Urbana') {
-                        return '<i data-lucide="broom"></i>';
+                        return '<i data-lucide="brush"></i>';
                     } else if (type === 'Resíduos') {
                         return '<i data-lucide="trash-2"></i>';
                     }
@@ -1431,8 +1492,28 @@
                     }, 100);
                 });
                 
+                // Event listener para quando o marcador da equipe for arrastado
+                marker.on('dragend', function(e) {
+                    const teamMarker = e.target;
+                    const newPosition = teamMarker.getLatLng();
+                    
+                    console.log('👥 Equipe movida:', team.name);
+                    console.log('🔄 Nova posição:', newPosition.lat, newPosition.lng);
+                    
+                    // Atualiza as coordenadas da equipe
+                    team.coordinates = [newPosition.lat, newPosition.lng];
+                    
+                    // Aqui você pode adicionar código para salvar no banco de dados
+                    // Por exemplo: updateTeamCoordinates(team.id, newPosition.lat, newPosition.lng);
+                    
+                    console.log('✅ Coordenadas da equipe atualizadas para:', team.name);
+                });
+                
                 layerGroups.equipes.addLayer(marker);
             });
+            
+            // Atualiza as estatísticas do dashboard
+            updateDashboardStats();
         }
         
         /**

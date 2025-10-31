@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Supabase Loading</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Debug Supabase Loading</h1>
+    <div id="status">Carregando...</div>
+    <div id="data"></div>
+
+    <script>
+        // Configuração do Supabase
+        const SUPABASE_CONFIG = {
+            url: 'https://rwfolmphjmuyqocetitv.supabase.co',
+            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3Zm9sbXBoam11eXFvY2V0aXR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2NjA2MTcsImV4cCI6MjA3NzIzNjYxN30.O1ll_msQWobgghQAg0TA5s4Xl7ZrOJNYKOXJ0zDS8B8'
+        };
+
+        // Inicializar cliente Supabase
+        const supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+
+        // Função para converter dados do Supabase para o formato do sistema
+        function convertSupabaseToSystemFormat(supabaseData) {
+            return supabaseData.map((area, index) => {
+                const statusMap = {
+                    'nao_programado': 'Pendente',
+                    'programado': 'Hoje',
+                    'em_andamento': 'Em Execução',
+                    'concluido': 'Concluído'
+                };
+
+                return {
+                    id: area.id,
+                    name: `${area.endereco} - ${area.bairro}`,
+                    type: 'Roçagem Áreas Públicas',
+                    coordinates: [area.latitude, area.longitude],
+                    status: statusMap[area.status] || 'Pendente',
+                    endereco: area.endereco,
+                    bairro: area.bairro
+                };
+            });
+        }
+
+        // Função para carregar dados do Supabase
+        async function loadSupabaseData() {
+            try {
+                console.log('🔄 Carregando dados do Supabase...');
+                document.getElementById('status').innerHTML = '🔄 Carregando dados do Supabase...';
+                
+                const { data, error } = await supabase
+                    .from('rocagem_areas_publicas')
+                    .select('*')
+                    .order('id', { ascending: true });
+
+                if (error) {
+                    console.error('❌ Erro ao carregar dados do Supabase:', error);
+                    document.getElementById('status').innerHTML = '❌ Erro: ' + error.message;
+                    return false;
+                }
+
+                console.log(`✅ ${data.length} áreas carregadas do Supabase`);
+                document.getElementById('status').innerHTML = `✅ ${data.length} áreas carregadas do Supabase`;
+                
+                // Converter dados
+                const convertedServices = convertSupabaseToSystemFormat(data);
+                console.log('Dados convertidos:', convertedServices);
+                
+                // Mostrar dados na página
+                document.getElementById('data').innerHTML = '<pre>' + JSON.stringify(convertedServices.slice(0, 3), null, 2) + '</pre>';
+                
+                return true;
+            } catch (error) {
+                console.error('❌ Erro geral ao carregar Supabase:', error);
+                document.getElementById('status').innerHTML = '❌ Erro geral: ' + error.message;
+                return false;
+            }
+        }
+
+        // Carregar dados quando a página carregar
+        window.addEventListener('load', () => {
+            loadSupabaseData();
+        });
+    </script>
+</body>
+</html>
